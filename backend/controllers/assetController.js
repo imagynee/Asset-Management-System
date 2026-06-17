@@ -1,8 +1,14 @@
+const QRCode = require('qrcode');
+const fs = require('fs');
+const path = require('path');
+
 const Asset = require('../models/Asset');
 const AssetHistory = require('../models/AssetHistory');
-require('../models/Category');
-require('../models/Vendor');
-require('../models/Employee');
+const Category = require('../models/Category');
+const Vendor = require('../models/Vendor');
+const Employee = require('../models/Employee');
+
+
 
 const buildAssetPayload = (req) => {
     const allowedFields = [
@@ -45,9 +51,12 @@ const populateAssetQuery = (query) => {
 };
 
 const createAsset = async (req, res) => {
+    
     try {
         const asset = await Asset.create(buildAssetPayload(req));
-        console.log(asset);
+        
+        await QRCode.toFile(`uploads/AssetQrCodes/${asset.assetId}.png`, asset.assetId);
+        
         return res.status(201).json({
             message: 'Asset created successfully',
             asset
@@ -62,13 +71,18 @@ const createAsset = async (req, res) => {
 
 const getAssets = async (req, res) => {
     try {
-        const assets = await populateAssetQuery(
-            Asset.find().sort({ createdAt: -1 })
-        );
+        const [assets, categories, vendors] = await Promise.all([
+            populateAssetQuery(Asset.find().sort({ createdAt: -1 })),
+            Category.find().sort({ categoryName: 1 }),
+            Vendor.find().sort({ vendorName: 1 })
+        ]);
 
         return res.status(200).json({
             count: assets.length,
-            assets
+            assets,
+            categories,
+            status: ['Available', 'Assigned', 'Maintenance'],
+            vendors
         });
     } catch (error) {
         return res.status(500).json({
@@ -80,7 +94,12 @@ const getAssets = async (req, res) => {
 
 const getAssetById = async (req, res) => {
     try {
-        const asset = await populateAssetQuery(Asset.findById(req.params.id));
+        const [asset, history] = await Promise.all([
+            populateAssetQuery(Asset.findById(req.params.id)),
+            AssetHistory.find({ asset: req.params.id })
+                .populate('employee', 'name phone department')
+                .sort({ actionDate: 1, createdAt: 1 })
+        ]);
 
         if (!asset) {
             return res.status(404).json({
@@ -88,13 +107,57 @@ const getAssetById = async (req, res) => {
             });
         }
 
-        return res.status(200).json({ asset });
+        const assetHistory = history.map((entry) => {           // map for a cleaner response from history obeject.
+            const historyItem = {
+                action: entry.action
+            };
+
+            if (entry.action === 'assigned') {                      // assigned by and assign date
+                historyItem.assignedTo = entry.employee;
+                historyItem.assignedDate = entry.actionDate;
+            }
+
+            if (entry.action === 'returned') {                      // returned by and return date
+                historyItem.returnedBy = entry.employee;
+                historyItem.returnDate = entry.actionDate;        
+            }
+
+            return historyItem;
+        });
+
+        return res.status(200).json({ asset, assetHistory });
     } catch (error) {
         return res.status(500).json({
             message: 'Failed to fetch asset',
             error: error.message
         });
     }
+};
+
+const assetQrCodesDir = path.join(__dirname, '..', 'uploads', 'AssetQrCodes');
+
+const getAssetQrCode = (req, res) => {
+    
+    const qrFilePath = path.resolve(assetQrCodesDir, `${req.params.assetId}.png`);
+    const qrCodesRoot = path.resolve(assetQrCodesDir);
+
+    console.log(assetQrCodesDir);
+    console.log(qrFilePath);
+    console.log(qrCodesRoot);
+
+    if (!qrFilePath.startsWith(`${qrCodesRoot}${path.sep}`)) {      // Hack protection
+        return res.status(400).json({
+            message: 'Invalid asset id'
+        });
+    }
+
+    if (!fs.existsSync(qrFilePath)) {
+        return res.status(404).json({
+            message: 'Asset QR code not found'
+        });
+    }
+
+    return res.sendFile(qrFilePath);            //send qr
 };
 
 const updateAsset = async (req, res) => {
@@ -251,6 +314,7 @@ module.exports = {
     createAsset,
     getAssets,
     getAssetById,
+    getAssetQrCode,
     updateAsset,
     deleteAsset,
     assignAsset,
