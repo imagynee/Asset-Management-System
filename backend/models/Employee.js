@@ -6,6 +6,12 @@ const employeeSchema = new mongoose.Schema({
         required: true
     },
 
+    empId: {
+        type: String,
+        required: true,
+        unique: true
+    },
+
     email: {
         type: String,
         required: true,
@@ -17,10 +23,8 @@ const employeeSchema = new mongoose.Schema({
         required: true
     },
 
-    role: {
+    designation: {
         type: String,
-        enum: ['admin', 'employee'],
-        default: 'employee'
     },
 
     department: {
@@ -33,6 +37,14 @@ const employeeSchema = new mongoose.Schema({
 
     profilePic: {
         type: String
+    },
+
+    idProofDoc:{
+        type: String
+    },
+
+    dateOfJoining:{
+        type: Date,
     }
 
 }, {

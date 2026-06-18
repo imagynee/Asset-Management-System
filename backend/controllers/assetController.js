@@ -1,8 +1,15 @@
+const QRCode = require('qrcode');
+const fs = require('fs');
+const path = require('path');
+const mongoose = require('mongoose');
+
 const Asset = require('../models/Asset');
 const AssetHistory = require('../models/AssetHistory');
-require('../models/Category');
-require('../models/Vendor');
-require('../models/Employee');
+const Category = require('../models/Category');
+const Vendor = require('../models/Vendor');
+const Employee = require('../models/Employee');
+
+
 
 const buildAssetPayload = (req) => {
     const allowedFields = [
@@ -45,9 +52,12 @@ const populateAssetQuery = (query) => {
 };
 
 const createAsset = async (req, res) => {
+    
     try {
         const asset = await Asset.create(buildAssetPayload(req));
-        console.log(asset);
+        
+        await QRCode.toFile(`uploads/AssetQrCodes/${asset.assetId}.png`, asset.assetId);
+        
         return res.status(201).json({
             message: 'Asset created successfully',
             asset
@@ -62,13 +72,18 @@ const createAsset = async (req, res) => {
 
 const getAssets = async (req, res) => {
     try {
-        const assets = await populateAssetQuery(
-            Asset.find().sort({ createdAt: -1 })
-        );
+        const [assets, categories, vendors] = await Promise.all([
+            populateAssetQuery(Asset.find().sort({ createdAt: -1 })),
+            Category.find().sort({ categoryName: 1 }),
+            Vendor.find().sort({ vendorName: 1 })
+        ]);
 
         return res.status(200).json({
             count: assets.length,
-            assets
+            assets,
+            categories,
+            status: ['Available', 'Assigned', 'Maintenance'],
+            vendors
         });
     } catch (error) {
         return res.status(500).json({
@@ -80,7 +95,12 @@ const getAssets = async (req, res) => {
 
 const getAssetById = async (req, res) => {
     try {
-        const asset = await populateAssetQuery(Asset.findById(req.params.id));
+        const [asset, history] = await Promise.all([
+            populateAssetQuery(Asset.findById(req.params.id)),
+            AssetHistory.find({ asset: req.params.id })
+                .populate('employee', 'name phone department')
+                .sort({ actionDate: 1, createdAt: 1 })
+        ]);
 
         if (!asset) {
             return res.status(404).json({
@@ -88,13 +108,57 @@ const getAssetById = async (req, res) => {
             });
         }
 
-        return res.status(200).json({ asset });
+        const assetHistory = history.map((entry) => {           // map for a cleaner response from history obeject.
+            const historyItem = {
+                action: entry.action
+            };
+
+            if (entry.action === 'assigned') {                      // assigned by and assign date
+                historyItem.assignedTo = entry.employee;
+                historyItem.assignedDate = entry.actionDate;
+            }
+
+            if (entry.action === 'returned') {                      // returned by and return date
+                historyItem.returnedBy = entry.employee;
+                historyItem.returnDate = entry.actionDate;        
+            }
+
+            return historyItem;
+        });
+
+        return res.status(200).json({ asset, assetHistory });
     } catch (error) {
         return res.status(500).json({
             message: 'Failed to fetch asset',
             error: error.message
         });
     }
+};
+
+const assetQrCodesDir = path.join(__dirname, '..', 'uploads', 'AssetQrCodes');
+
+const getAssetQrCode = (req, res) => {
+    
+    const qrFilePath = path.resolve(assetQrCodesDir, `${req.params.assetId}.png`);
+    const qrCodesRoot = path.resolve(assetQrCodesDir);
+
+    console.log(assetQrCodesDir);
+    console.log(qrFilePath);
+    console.log(qrCodesRoot);
+
+    if (!qrFilePath.startsWith(`${qrCodesRoot}${path.sep}`)) {      // Hack protection
+        return res.status(400).json({
+            message: 'Invalid asset id'
+        });
+    }
+
+    if (!fs.existsSync(qrFilePath)) {
+        return res.status(404).json({
+            message: 'Asset QR code not found'
+        });
+    }
+
+    return res.sendFile(qrFilePath);            //send qr
 };
 
 const updateAsset = async (req, res) => {
@@ -152,7 +216,7 @@ const deleteAsset = async (req, res) => {
 
 const assignAsset = async (req, res) => {
     try {
-        const employeeId = req.body.employee || req.body.employeeId || req.body.assignedTo;
+        const { employeeId, assetIds } = req.body;
 
         if (!employeeId) {
             return res.status(400).json({
@@ -160,46 +224,98 @@ const assignAsset = async (req, res) => {
             });
         }
 
-        const asset = await populateAssetQuery(
-            Asset.findByIdAndUpdate(
-                req.params.id,
-                {
-                    status: 'Assigned',
-                    assignedTo: employeeId,
-                    assignedDate: new Date()
-                },
-                {
-                    new: true,
-                    runValidators: true
-                }
-            )
-        );
-
-        if (!asset) {
-            return res.status(404).json({
-                message: 'Asset not found'
+        if (!Array.isArray(assetIds) || assetIds.length === 0) {
+            return res.status(400).json({
+                message: 'At least one asset id is required'
             });
         }
 
-        const history = await AssetHistory.create({
-            asset: asset._id,
-            employee: employeeId,
-            action: 'assigned',
-            actionDate: asset.assignedDate
+        if (!mongoose.Types.ObjectId.isValid(employeeId)) {
+            return res.status(400).json({
+                message: 'Invalid employee id'
+            });
+        }
+
+        const invalidAssetIds = assetIds.filter(
+            (assetId) => !mongoose.Types.ObjectId.isValid(assetId)
+        );
+
+        if (invalidAssetIds.length) {
+            return res.status(400).json({
+                message: 'Invalid asset id(s)',
+                invalidAssetIds
+            });
+        }
+
+        const employee = await Employee.findById(employeeId);
+
+        if (!employee) {
+            return res.status(404).json({
+                message: 'Employee not found'
+            });
+        }
+
+        const assets = await Asset.find({
+            _id: { $in: assetIds }
         });
 
+        if (assets.length !== assetIds.length) {
+            return res.status(404).json({
+                message: 'One or more assets were not found'
+            });
+        }
+        const alreadyAssigned = assets.filter(      // find all assets already assigned.
+            asset => asset.status === 'Assigned'
+        );
+
+        if (alreadyAssigned.length) {
+            return res.status(400).json({
+                message: 'One or more assets are already assigned',
+                alreadyAssigned
+            });
+        }
+
+        const assignedDate = new Date();
+
+        await Asset.updateMany(
+            { _id: { $in: assetIds } },
+            {
+                $set: {
+                    status: 'Assigned',
+                    assignedTo: employeeId,
+                    assignedDate
+                }
+            }
+        );
+
+        const histories = await AssetHistory.insertMany(
+            assetIds.map((assetId) => ({
+                asset: assetId,
+                employee: employeeId,
+                action: 'assigned',
+                actionDate: assignedDate
+            }))
+        );
+
+        const updatedAssets = await populateAssetQuery(
+            Asset.find({ _id: { $in: assetIds } })
+        );
+
         return res.status(200).json({
-            message: 'Asset assigned successfully',
-            asset,
-            history
+            message: 'Assets assigned successfully',
+            assets: updatedAssets,
+            histories
         });
+        
     } catch (error) {
         return res.status(400).json({
-            message: 'Failed to assign asset',
+            message: 'Failed to assign assets',
             error: error.message
         });
     }
+
 };
+
 
 const returnAsset = async (req, res) => {
     try {
@@ -251,6 +367,7 @@ module.exports = {
     createAsset,
     getAssets,
     getAssetById,
+    getAssetQrCode,
     updateAsset,
     deleteAsset,
     assignAsset,
