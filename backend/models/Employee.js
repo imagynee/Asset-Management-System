@@ -25,8 +25,6 @@ const employeeSchema = new mongoose.Schema({
 
     designation: {
         type: String,
-        enum: ['admin', 'employee'],
-        default: 'employee'
     },
 
     department: {
@@ -45,7 +43,7 @@ const employeeSchema = new mongoose.Schema({
         type: String
     },
 
-    dateofJoining:{
+    dateOfJoining:{
         type: Date,
     }
 
