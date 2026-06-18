@@ -1,6 +1,7 @@
 const QRCode = require('qrcode');
 const fs = require('fs');
 const path = require('path');
+const mongoose = require('mongoose');
 
 const Asset = require('../models/Asset');
 const AssetHistory = require('../models/AssetHistory');
@@ -215,7 +216,7 @@ const deleteAsset = async (req, res) => {
 
 const assignAsset = async (req, res) => {
     try {
-        const employeeId = req.body.employee || req.body.employeeId || req.body.assignedTo;
+        const { employeeId, assetIds } = req.body;
 
         if (!employeeId) {
             return res.status(400).json({
@@ -223,46 +224,98 @@ const assignAsset = async (req, res) => {
             });
         }
 
-        const asset = await populateAssetQuery(
-            Asset.findByIdAndUpdate(
-                req.params.id,
-                {
-                    status: 'Assigned',
-                    assignedTo: employeeId,
-                    assignedDate: new Date()
-                },
-                {
-                    new: true,
-                    runValidators: true
-                }
-            )
-        );
-
-        if (!asset) {
-            return res.status(404).json({
-                message: 'Asset not found'
+        if (!Array.isArray(assetIds) || assetIds.length === 0) {
+            return res.status(400).json({
+                message: 'At least one asset id is required'
             });
         }
 
-        const history = await AssetHistory.create({
-            asset: asset._id,
-            employee: employeeId,
-            action: 'assigned',
-            actionDate: asset.assignedDate
+        if (!mongoose.Types.ObjectId.isValid(employeeId)) {
+            return res.status(400).json({
+                message: 'Invalid employee id'
+            });
+        }
+
+        const invalidAssetIds = assetIds.filter(
+            (assetId) => !mongoose.Types.ObjectId.isValid(assetId)
+        );
+
+        if (invalidAssetIds.length) {
+            return res.status(400).json({
+                message: 'Invalid asset id(s)',
+                invalidAssetIds
+            });
+        }
+
+        const employee = await Employee.findById(employeeId);
+
+        if (!employee) {
+            return res.status(404).json({
+                message: 'Employee not found'
+            });
+        }
+
+        const assets = await Asset.find({
+            _id: { $in: assetIds }
         });
 
+        if (assets.length !== assetIds.length) {
+            return res.status(404).json({
+                message: 'One or more assets were not found'
+            });
+        }
+        const alreadyAssigned = assets.filter(      // find all assets already assigned.
+            asset => asset.status === 'Assigned'
+        );
+
+        if (alreadyAssigned.length) {
+            return res.status(400).json({
+                message: 'One or more assets are already assigned',
+                alreadyAssigned
+            });
+        }
+
+        const assignedDate = new Date();
+
+        await Asset.updateMany(
+            { _id: { $in: assetIds } },
+            {
+                $set: {
+                    status: 'Assigned',
+                    assignedTo: employeeId,
+                    assignedDate
+                }
+            }
+        );
+
+        const histories = await AssetHistory.insertMany(
+            assetIds.map((assetId) => ({
+                asset: assetId,
+                employee: employeeId,
+                action: 'assigned',
+                actionDate: assignedDate
+            }))
+        );
+
+        const updatedAssets = await populateAssetQuery(
+            Asset.find({ _id: { $in: assetIds } })
+        );
+
         return res.status(200).json({
-            message: 'Asset assigned successfully',
-            asset,
-            history
+            message: 'Assets assigned successfully',
+            assets: updatedAssets,
+            histories
         });
+        
     } catch (error) {
         return res.status(400).json({
-            message: 'Failed to assign asset',
+            message: 'Failed to assign assets',
             error: error.message
         });
     }
+
 };
+
 
 const returnAsset = async (req, res) => {
     try {
