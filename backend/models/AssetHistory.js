@@ -15,7 +15,15 @@ const assetHistorySchema = new mongoose.Schema({
 
     action: {
         type: String,
-        enum: ['assigned', 'returned'],
+        enum: [
+            'assigned',
+            'returned',
+            'maintenance',
+            'return_requested',
+            'maintenance_requested',
+            'maintenance_started',
+            'maintenance_completed'
+        ],
         required: true
     },
 

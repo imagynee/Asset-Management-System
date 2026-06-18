@@ -82,7 +82,7 @@ const getAssets = async (req, res) => {
             count: assets.length,
             assets,
             categories,
-            status: ['Available', 'Assigned', 'Maintenance'],
+            status: ['Available', 'Assigned', 'Maintenance', 'Return Requested', 'Maintenance Requested'],
             vendors
         });
     } catch (error) {
@@ -214,108 +214,6 @@ const deleteAsset = async (req, res) => {
     }
 };
 
-const assignAsset = async (req, res) => {
-    try {
-        const { employeeId, assetIds } = req.body;
-
-        if (!employeeId) {
-            return res.status(400).json({
-                message: 'Employee id is required'
-            });
-        }
-
-        if (!Array.isArray(assetIds) || assetIds.length === 0) {
-            return res.status(400).json({
-                message: 'At least one asset id is required'
-            });
-        }
-
-        if (!mongoose.Types.ObjectId.isValid(employeeId)) {
-            return res.status(400).json({
-                message: 'Invalid employee id'
-            });
-        }
-
-        const invalidAssetIds = assetIds.filter(
-            (assetId) => !mongoose.Types.ObjectId.isValid(assetId)
-        );
-
-        if (invalidAssetIds.length) {
-            return res.status(400).json({
-                message: 'Invalid asset id(s)',
-                invalidAssetIds
-            });
-        }
-
-        const employee = await Employee.findById(employeeId);
-
-        if (!employee) {
-            return res.status(404).json({
-                message: 'Employee not found'
-            });
-        }
-
-        const assets = await Asset.find({
-            _id: { $in: assetIds }
-        });
-
-        if (assets.length !== assetIds.length) {
-            return res.status(404).json({
-                message: 'One or more assets were not found'
-            });
-        }
-        const alreadyAssigned = assets.filter(      // find all assets already assigned.
-            asset => asset.status === 'Assigned'
-        );
-
-        if (alreadyAssigned.length) {
-            return res.status(400).json({
-                message: 'One or more assets are already assigned',
-                alreadyAssigned
-            });
-        }
-
-        const assignedDate = new Date();
-
-        await Asset.updateMany(
-            { _id: { $in: assetIds } },
-            {
-                $set: {
-                    status: 'Assigned',
-                    assignedTo: employeeId,
-                    assignedDate
-                }
-            }
-        );
-
-        const histories = await AssetHistory.insertMany(
-            assetIds.map((assetId) => ({
-                asset: assetId,
-                employee: employeeId,
-                action: 'assigned',
-                actionDate: assignedDate
-            }))
-        );
-
-        const updatedAssets = await populateAssetQuery(
-            Asset.find({ _id: { $in: assetIds } })
-        );
-
-        return res.status(200).json({
-            message: 'Assets assigned successfully',
-            assets: updatedAssets,
-            histories
-        });
-        
-    } catch (error) {
-        return res.status(400).json({
-            message: 'Failed to assign assets',
-            error: error.message
-        });
-    }
-
-};
-
 
 const returnAsset = async (req, res) => {
     try {
@@ -370,6 +268,6 @@ module.exports = {
     getAssetQrCode,
     updateAsset,
     deleteAsset,
-    assignAsset,
-    returnAsset
+    returnAsset,
+    populateAssetQuery,
 };
