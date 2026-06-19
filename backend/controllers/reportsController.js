@@ -1,6 +1,7 @@
 const XLSX = require('xlsx');
 
 const Asset = require('../models/Asset');
+const Employee = require('../models/Employee');
 
 const populateReportAssetQuery = (query) => {
     return query
@@ -70,9 +71,31 @@ const baseReportHeaders = [
     'Status'
 ];
 
-const sendWorkbook = (res, rows, fileName, sheetName, includeAssignmentFields = false) => {
-    const headers = includeAssignmentFields ? [...baseReportHeaders, 'Assigned To', 'Assignment Date'] : baseReportHeaders;
+const employeeReportHeaders = [
+    'Employee ID',
+    'Name',
+    'Email',
+    'Designation',
+    'Department',
+    'Phone',
+    'Date Of Joining',
+    'Created Date'
+];
 
+const buildEmployeeReportRows = (employees) => {
+    return employees.map((employee) => ({
+        'Employee ID': employee.empId || '',
+        'Name': employee.name || '',
+        'Email': employee.email || '',
+        'Designation': employee.designation || '',
+        'Department': employee.department || '',
+        'Phone': employee.phone || '',
+        'Date Of Joining': formatReportDate(employee.dateOfJoining),
+        'Created Date': formatReportDate(employee.createdAt)
+    }));
+};
+
+const sendWorkbook = (res, rows, fileName, sheetName, headers) => {
     const workbook = XLSX.utils.book_new();
     const worksheet = XLSX.utils.json_to_sheet(rows, {
         header: headers
@@ -128,6 +151,9 @@ const exportAssetReport = async (req, res) => {
             Asset.find({ status: { $in: config.statuses } }).sort({ assetName: 1 })
         );
 
+        const headers = config.includeAssignmentFields
+            ? [...baseReportHeaders, 'Assigned To', 'Assignment Date']
+            : baseReportHeaders;
         const rows = buildAssetReportRows(assets, config.includeAssignmentFields);
 
         return sendWorkbook(
@@ -135,7 +161,7 @@ const exportAssetReport = async (req, res) => {
             rows,
             config.fileName,
             config.sheetName,
-            config.includeAssignmentFields
+            headers
         );
     } catch (error) {
         return res.status(500).json({
@@ -145,6 +171,55 @@ const exportAssetReport = async (req, res) => {
     }
 };
 
+const exportAllAssetsReport = async (req, res) => {
+    try {
+        const assets = await populateReportAssetQuery(
+            Asset.find().sort({ assetName: 1 })
+        );
+
+        const headers = [...baseReportHeaders, 'Assigned To', 'Assignment Date'];
+        const rows = buildAssetReportRows(assets, true);
+
+        return sendWorkbook(
+            res,
+            rows,
+            'all-assets-report.xlsx',
+            'All Assets',
+            headers
+        );
+    } catch (error) {
+        return res.status(500).json({
+            message: 'Failed to export all assets report',
+            error: error.message
+        });
+    }
+};
+
+const exportAllEmployeesReport = async (req, res) => {
+    try {
+        const employees = await Employee.find()
+            .select('empId name email designation department phone dateOfJoining createdAt')
+            .sort({ name: 1 });
+
+        const rows = buildEmployeeReportRows(employees);
+
+        return sendWorkbook(
+            res,
+            rows,
+            'all-employees-report.xlsx',
+            'All Employees',
+            employeeReportHeaders
+        );
+    } catch (error) {
+        return res.status(500).json({
+            message: 'Failed to export all employees report',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
-    exportAssetReport
+    exportAssetReport,
+    exportAllAssetsReport,
+    exportAllEmployeesReport
 };

@@ -1,9 +1,17 @@
 const Asset = require('../models/Asset');
 const AssetHistory = require('../models/AssetHistory');
 const Employee = require('../models/Employee');
+const {
+    getSearchFilter,
+    getPagination,
+    getSort,
+    toArray
+} = require('../utils/listQuery');
 
 const employeeListFields = 'name empId email designation department phone';
 const employeeDetailFields = 'name empId email designation department phone profilePic dateOfJoining';
+const employeeSearchFields = ['empId', 'name', 'email', 'department'];
+const employeeSortFields = ['empId', 'name', 'email', 'designation', 'department', 'phone', 'createdAt'];
 
 const assetPopulateQuery = (query) => {
     return query
@@ -38,19 +46,54 @@ const formatHistoryAsset = (historyItem) => {
 
 // GET ALL EMPLOYEE LIST
 
-const getAllEmployees = () => {
-    return Employee.find()
+const buildEmployeeListFilter = (query) => {
+    const filter = {
+        ...getSearchFilter(query.search || query.q, employeeSearchFields)
+    };
+
+    const departments = toArray(query.department);
+    const designations = toArray(query.designation);
+
+    if (departments.length) {
+        filter.department = { $in: departments };
+    }
+
+    if (designations.length) {
+        filter.designation = { $in: designations };
+    }
+
+    return filter;
+};
+
+const getAllEmployees = async (query = {}) => {
+    const filter = buildEmployeeListFilter(query);
+    const pagination = getPagination(query);
+    const sort = getSort(query, employeeSortFields, { createdAt: -1 });
+    const employeeQuery = Employee.find(filter)
         .select(employeeListFields)
-        .sort({ createdAt: -1 })
-        .lean()
-        .then((employees) => employees.map((employee) => ({
+        .sort(sort);
+
+    if (pagination.hasPagination) {
+        employeeQuery.skip(pagination.skip).limit(pagination.limit);
+    }
+
+    const [employees, totalCount] = await Promise.all([
+        employeeQuery.lean(),
+        Employee.countDocuments(filter)
+    ]);
+
+    return {
+        employees: employees.map((employee) => ({
             name: employee.name,
             email: employee.email,
             phone: employee.phone,
             designation: employee.designation,
             department: employee.department,
             empId: employee.empId
-        })));
+        })),
+        totalCount,
+        pagination
+    };
 };
 
 // GET EMPLOYEE DETAIL AND ASSIGNED ASSETS
