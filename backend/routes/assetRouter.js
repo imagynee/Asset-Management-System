@@ -6,9 +6,13 @@ const {
     getAssetById,
     getAssetQrCode,
     updateAsset,
-    deleteAsset,
-    returnAsset
+    deleteAsset
 } = require('../controllers/assetController');
+const { returnAsset } = require('../controllers/ReturnController');
+const {
+    startMaintenance,
+    completeMaintenance
+} = require('../controllers/MaintenanceController');
 
 const router = express.Router();
 
@@ -19,6 +23,8 @@ router.get('/:id', getAssetById);                                   //working
 router.put('/:id', upload.single('assetImage'), updateAsset);           //working
 router.delete('/:id', deleteAsset);                                        //working
 
-router.patch('/:id/return', upload.none(), returnAsset);                    //working
+router.patch('/return', upload.none(), returnAsset);
+router.patch('/maintenance/start', upload.none(), startMaintenance);
+router.patch('/maintenance/complete', upload.none(), completeMaintenance);
 
 module.exports = router;

@@ -16,21 +16,24 @@ const assetHistorySchema = new mongoose.Schema({
     action: {
         type: String,
         enum: [
-            'assigned',
-            'returned',
-            'maintenance',
-            'return_requested',
-            'maintenance_requested',
-            'maintenance_started',
-            'maintenance_completed'
+            'ASSIGNED',
+            'RETURNED',
+            'MAINTENANCE_STARTED',
+            'MAINTENANCE_COMPLETED',
         ],
         required: true
+    },
+
+    remarks: {
+        type: String,
+        trim: true
     },
 
     actionDate: {
         type: Date,
         default: Date.now
-    }
+    },
+
 }, {
     timestamps: true
 });

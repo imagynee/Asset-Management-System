@@ -287,8 +287,9 @@ const assignAsset = async (req, res) => {
             assetIds.map((assetId) => ({
                 asset: assetId,
                 employee: employeeId,
-                action: 'assigned',
-                actionDate: assignedDate
+                action: 'ASSIGNED',
+                actionDate: assignedDate,
+                remarks: 'Assigned to employee',
             }))
         );
 

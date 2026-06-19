@@ -51,6 +51,55 @@ const populateAssetQuery = (query) => {
         .populate('assignedTo');
 };
 
+const formatEmployeeBrief = (employee) => {
+    if (!employee) {
+        return null;
+    }
+
+    return {
+        _id: employee._id,
+        empId: employee.empId,
+        name: employee.name,
+        phone: employee.phone,
+        dept: employee.department
+    };
+};
+
+const formatAssetDetails = (asset) => {
+    const assetDetails = asset.toObject();
+
+    assetDetails.vendor = asset.vendor
+        ? {
+            vendorName: asset.vendor.vendorName,
+            phone: asset.vendor.phone
+        }
+        : null;
+
+    assetDetails.category = asset.category?.categoryName || null;
+    assetDetails.assignedTo = formatEmployeeBrief(asset.assignedTo);
+
+    return assetDetails;
+};
+
+const assignedHistoryActions = ['ASSIGNED', 'RETURNED', 'assigned', 'returned'];
+const maintenanceHistoryActions = ['MAINTENANCE_STARTED', 'MAINTENANCE_COMPLETED'];
+
+const formatAssignedHistory = (entry) => ({
+    employee: formatEmployeeBrief(entry.employee),
+    actionDate: entry.actionDate,
+    status: entry.action === 'ASSIGNED' || entry.action === 'assigned'
+        ? 'assigned'
+        : 'returned'
+});
+
+const formatMaintenanceHistory = (entry) => ({
+    employee: formatEmployeeBrief(entry.employee),
+    actionDate: entry.actionDate,
+    status: entry.action === 'MAINTENANCE_STARTED'
+        ? 'under maintenance'
+        : 'maintenance completed'
+});
+
 const createAsset = async (req, res) => {
     
     try {
@@ -96,9 +145,12 @@ const getAssets = async (req, res) => {
 const getAssetById = async (req, res) => {
     try {
         const [asset, history] = await Promise.all([
-            populateAssetQuery(Asset.findById(req.params.id)),
+            Asset.findById(req.params.id)
+                .populate('vendor', 'vendorName phone')
+                .populate('category', 'categoryName')
+                .populate('assignedTo', 'empId name phone department'),
             AssetHistory.find({ asset: req.params.id })
-                .populate('employee', 'name phone department')
+                .populate('employee', 'empId name phone department')
                 .sort({ actionDate: 1, createdAt: 1 })
         ]);
 
@@ -108,25 +160,19 @@ const getAssetById = async (req, res) => {
             });
         }
 
-        const assetHistory = history.map((entry) => {           // map for a cleaner response from history obeject.
-            const historyItem = {
-                action: entry.action
-            };
+        const assignedHistory = history
+            .filter((entry) => assignedHistoryActions.includes(entry.action))
+            .map(formatAssignedHistory);
 
-            if (entry.action === 'assigned') {                      // assigned by and assign date
-                historyItem.assignedTo = entry.employee;
-                historyItem.assignedDate = entry.actionDate;
-            }
+        const maintenanceHistory = history
+            .filter((entry) => maintenanceHistoryActions.includes(entry.action))
+            .map(formatMaintenanceHistory);
 
-            if (entry.action === 'returned') {                      // returned by and return date
-                historyItem.returnedBy = entry.employee;
-                historyItem.returnDate = entry.actionDate;        
-            }
-
-            return historyItem;
+        return res.status(200).json({
+            asset: formatAssetDetails(asset),
+            assignedHistory,
+            maintenanceHistory
         });
-
-        return res.status(200).json({ asset, assetHistory });
     } catch (error) {
         return res.status(500).json({
             message: 'Failed to fetch asset',
@@ -215,52 +261,6 @@ const deleteAsset = async (req, res) => {
 };
 
 
-const returnAsset = async (req, res) => {
-    try {
-        const existingAsset = await Asset.findById(req.params.id);
-
-        if (!existingAsset) {
-            return res.status(404).json({
-                message: 'Asset not found'
-            });
-        }
-
-        const employeeId = req.body.employee || req.body.employeeId || existingAsset.assignedTo;
-
-        if (!employeeId) {
-            return res.status(400).json({
-                message: 'Asset is not assigned to an employee'
-            });
-        }
-
-        existingAsset.status = 'Available';
-        existingAsset.assignedTo = null;
-        existingAsset.assignedDate = null;
-
-        await existingAsset.save();
-
-        const history = await AssetHistory.create({
-            asset: existingAsset._id,
-            employee: employeeId,
-            action: 'returned',
-            actionDate: new Date()
-        });
-
-        const asset = await populateAssetQuery(Asset.findById(existingAsset._id));
-
-        return res.status(200).json({
-            message: 'Asset returned successfully',
-            asset,
-            history
-        });
-    } catch (error) {
-        return res.status(400).json({
-            message: 'Failed to return asset',
-            error: error.message
-        });
-    }
-};
-
 module.exports = {
     createAsset,
     getAssets,
@@ -268,6 +268,5 @@ module.exports = {
     getAssetQrCode,
     updateAsset,
     deleteAsset,
-    returnAsset,
     populateAssetQuery,
 };

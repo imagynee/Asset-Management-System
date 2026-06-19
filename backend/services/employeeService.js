@@ -28,6 +28,8 @@ const formatHistoryAsset = (historyItem) => {
         assetId: asset?.assetId,
         categoryName: asset?.category?.categoryName,
         status: asset?.status,
+        action: historyItem.action,
+        remarks: historyItem.remarks,
         actionDate: historyItem.actionDate
     };
 };
