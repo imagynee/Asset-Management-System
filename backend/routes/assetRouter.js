@@ -7,7 +7,6 @@ const {
     getAssetQrCode,
     updateAsset,
     deleteAsset,
-    assignAsset,
     returnAsset
 } = require('../controllers/assetController');
 
@@ -20,7 +19,6 @@ router.get('/:id', getAssetById);                                   //working
 router.put('/:id', upload.single('assetImage'), updateAsset);           //working
 router.delete('/:id', deleteAsset);                                        //working
 
-router.patch('/assign', upload.none(), assignAsset);                   //working                   //working
 router.patch('/:id/return', upload.none(), returnAsset);                    //working
 
 module.exports = router;
