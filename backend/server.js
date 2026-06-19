@@ -28,10 +28,14 @@ app.use(cors({
 const dashboardRouter = require('./routes/dashboardRouter');
 const assetRouter = require('./routes/assetRouter');
 const employeeRouter = require('./routes/employeeRouter');
+const vendorRouter = require('./routes/vendorRouter');
+const reportsRouter = require('./routes/reportsRouter');
 
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/assets', assetRouter);
 app.use('/api/employees', employeeRouter);
+app.use('/api/vendors', vendorRouter);
+app.use('/api/reports', reportsRouter);
 
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

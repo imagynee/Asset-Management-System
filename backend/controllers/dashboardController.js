@@ -10,6 +10,7 @@ const getDashboard = async (req, res) => {
             assignedAssets,
             availableAssets,
             underMaintenance,
+            assetsGroupedByCategory,
             recentAssets
         ] = await Promise.all([
             // Count every asset document in the collection.
@@ -24,16 +25,69 @@ const getDashboard = async (req, res) => {
             // Count assets currently marked for repair/maintenance.
             Asset.countDocuments({ status: 'Maintenance' }),
 
+            // Count assets grouped by their category name.
+            Asset.aggregate([
+                {
+                    $lookup: {
+                        from: 'categories',
+                        localField: 'category',
+                        foreignField: '_id',
+                        as: 'category'
+                    }
+                },
+                {
+                    $unwind: {
+                        path: '$category',
+                        preserveNullAndEmptyArrays: true
+                    }
+                },
+                {
+                    $group: {
+                        _id: { $ifNull: ['$category.categoryName', 'Uncategorized'] },
+                        count: { $sum: 1 }
+                    }
+                },
+                {
+                    $sort: {
+                        _id: 1
+                    }
+                }
+            ]),
+
             // Fetch the newest assets for the dashboard table with assigned user details.
             Asset.find()
                 .sort({ createdAt: -1 })
                 .limit(10)
-                .select('assetId assetName category vendor model status assignedTo createdAt')
-                .populate('category')
-                .populate('vendor')
-                .populate('assignedTo')
+                .select('assetId assetName category serialNumber status assignedTo')
+                .populate('category', 'categoryName')
+                .populate('assignedTo', 'name empId')
                 .lean()
         ]);
+
+        const assetsByCategory = assetsGroupedByCategory.reduce((categoryCounts, category) => {
+            categoryCounts[category._id] = category.count;
+            return categoryCounts;
+        }, {});
+
+        const assetStatusPercentages = {
+            assigned: totalAssets === 0 ? 0 : Number(((assignedAssets / totalAssets) * 100).toFixed(2)),
+            available: totalAssets === 0 ? 0 : Number(((availableAssets / totalAssets) * 100).toFixed(2)),
+            underMaintenance: totalAssets === 0 ? 0 : Number(((underMaintenance / totalAssets) * 100).toFixed(2))
+        };
+
+        const formattedRecentAssets = recentAssets.map((asset) => ({
+            assetId: asset.assetId,
+            assetName: asset.assetName,
+            categoryName: asset.category?.categoryName || null,
+            serialNumber: asset.serialNumber,
+            status: asset.status,
+            assignedTo: asset.assignedTo
+                ? {
+                    name: asset.assignedTo.name,
+                    empId: asset.assignedTo.empId
+                }
+                : null
+        }));
 
         return res.status(200).json({
             stats: {
@@ -42,7 +96,9 @@ const getDashboard = async (req, res) => {
                 availableAssets,
                 underMaintenance
             },
-            recentAssets
+            assetsByCategory,
+            assetStatusPercentages,
+            recentAssets: formattedRecentAssets
         });
     } catch (error) {
         console.error('Dashboard fetch failed:', error);
