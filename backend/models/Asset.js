@@ -47,7 +47,8 @@ const assetSchema = new mongoose.Schema({
     },
 
     warrantyExpiry: {
-        type: Date
+        type: Date,
+        index: true
     },
 
     assetImage: {
@@ -61,7 +62,7 @@ const assetSchema = new mongoose.Schema({
 
     status: {
         type: String,
-        enum: ['Available', 'Assigned', 'Maintenance', 'Return Requested', 'Maintenance Requested'],
+        enum: ['Available', 'Assigned', 'Maintenance'],
         default: 'Available'
     },
 

@@ -3,6 +3,36 @@ require('../models/Category');
 require('../models/Vendor');
 require('../models/Employee');
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+const getStartOfToday = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+};
+
+const addDays = (date, days) => {
+    const nextDate = new Date(date);
+    nextDate.setDate(nextDate.getDate() + days);
+    return nextDate;
+};
+
+const formatExpiringAsset = (asset, today) => ({
+    _id: asset._id,
+    assetId: asset.assetId,
+    assetName: asset.assetName,
+    warrantyExpiry: asset.warrantyExpiry,
+    daysLeft: Math.max(0, Math.ceil((asset.warrantyExpiry - today) / MS_PER_DAY))
+});
+
+const formatExpiredAsset = (asset, today) => ({
+    _id: asset._id,
+    assetId: asset.assetId,
+    assetName: asset.assetName,
+    warrantyExpiry: asset.warrantyExpiry,
+    expiredDays: Math.max(1, Math.ceil((today - asset.warrantyExpiry) / MS_PER_DAY))
+});
+
 const getDashboard = async (req, res) => {
     try {
         const [
@@ -109,6 +139,58 @@ const getDashboard = async (req, res) => {
     }
 };
 
+const getWarrantyAlerts = async (req, res) => {
+    try {
+        const today = getStartOfToday();
+        const expiringUntil = addDays(today, 31);
+
+        const expiringQuery = {
+            warrantyExpiry: {
+                $gte: today,
+                $lt: expiringUntil
+            }
+        };
+
+        const expiredQuery = {
+            warrantyExpiry: {
+                $lt: today
+            }
+        };
+
+        const [
+            expiringCount,
+            expiredCount,
+            expiringAssets,
+            expiredAssets
+        ] = await Promise.all([
+            Asset.countDocuments(expiringQuery),
+            Asset.countDocuments(expiredQuery),
+            Asset.find(expiringQuery)
+                .select('_id assetId assetName warrantyExpiry')
+                .sort({ warrantyExpiry: 1 })
+                .lean(),
+            Asset.find(expiredQuery)
+                .select('_id assetId assetName warrantyExpiry')
+                .sort({ warrantyExpiry: 1 })
+                .lean()
+        ]);
+
+        return res.status(200).json({
+            expiringCount,
+            expiredCount,
+            expiringAssets: expiringAssets.map((asset) => formatExpiringAsset(asset, today)),
+            expiredAssets: expiredAssets.map((asset) => formatExpiredAsset(asset, today))
+        });
+    } catch (error) {
+        console.error('Warranty alerts fetch failed:', error);
+
+        return res.status(500).json({
+            message: 'Failed to fetch warranty alerts'
+        });
+    }
+};
+
 module.exports = {
-    getDashboard
+    getDashboard,
+    getWarrantyAlerts
 };
