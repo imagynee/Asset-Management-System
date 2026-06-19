@@ -132,13 +132,28 @@ const validateEmployeeId = (employeeId, res) => {
 
 const getEmployees = async (req, res) => {
     try {
-        const employees = await getAllEmployees();
+        const {
+            employees,
+            totalCount,
+            pagination
+        } = await getAllEmployees(req.query);
 
-        return res.status(200).json({
+        const response = {
             success: true,
             count: employees.length,
+            totalCount,
             employees
-        });
+        };
+
+        if (pagination.hasPagination) {
+            response.pagination = {
+                page: pagination.page,
+                limit: pagination.limit,
+                totalPages: Math.ceil(totalCount / pagination.limit)
+            };
+        }
+
+        return res.status(200).json(response);
     } catch (error) {
         return res.status(500).json({
             success: false,

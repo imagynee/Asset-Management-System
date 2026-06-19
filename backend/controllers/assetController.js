@@ -8,6 +8,12 @@ const AssetHistory = require('../models/AssetHistory');
 const Category = require('../models/Category');
 const Vendor = require('../models/Vendor');
 const Employee = require('../models/Employee');
+const {
+    getSearchFilter,
+    getPagination,
+    getSort,
+    toArray
+} = require('../utils/listQuery');
 
 
 
@@ -49,6 +55,38 @@ const populateAssetQuery = (query) => {
         .populate('category')
         .populate('vendor')
         .populate('assignedTo');
+};
+
+const assetSearchFields = ['assetId', 'assetName', 'model', 'serialNumber'];
+const assetSortFields = ['assetId', 'assetName', 'model', 'serialNumber', 'status', 'purchaseDate', 'warrantyExpiry', 'createdAt'];
+
+const buildAssetListFilter = (query) => {
+    const filter = {
+        ...getSearchFilter(query.search || query.q, assetSearchFields)
+    };
+
+    const statuses = toArray(query.status);
+    const categories = toArray(query.category || query.categoryId);
+    const vendors = toArray(query.vendor || query.vendorId);
+    const assignedTo = toArray(query.assignedTo || query.employeeId);
+
+    if (statuses.length) {
+        filter.status = { $in: statuses };
+    }
+
+    if (categories.length) {
+        filter.category = { $in: categories };
+    }
+
+    if (vendors.length) {
+        filter.vendor = { $in: vendors };
+    }
+
+    if (assignedTo.length) {
+        filter.assignedTo = { $in: assignedTo };
+    }
+
+    return filter;
 };
 
 const formatEmployeeBrief = (employee) => {
@@ -121,19 +159,40 @@ const createAsset = async (req, res) => {
 
 const getAssets = async (req, res) => {
     try {
+        const filter = buildAssetListFilter(req.query);
+        const pagination = getPagination(req.query);
+        const sort = getSort(req.query, assetSortFields, { createdAt: -1 });
+        const assetQuery = populateAssetQuery(Asset.find(filter).sort(sort));
+
+        if (pagination.hasPagination) {
+            assetQuery.skip(pagination.skip).limit(pagination.limit);
+        }
+
         const [assets, categories, vendors] = await Promise.all([
-            populateAssetQuery(Asset.find().sort({ createdAt: -1 })),
+            assetQuery,
             Category.find().sort({ categoryName: 1 }),
             Vendor.find().sort({ vendorName: 1 })
         ]);
 
-        return res.status(200).json({
+        const totalCount = await Asset.countDocuments(filter);
+        const response = {
             count: assets.length,
+            totalCount,
             assets,
             categories,
             status: ['Available', 'Assigned', 'Maintenance', 'Return Requested', 'Maintenance Requested'],
             vendors
-        });
+        };
+
+        if (pagination.hasPagination) {
+            response.pagination = {
+                page: pagination.page,
+                limit: pagination.limit,
+                totalPages: Math.ceil(totalCount / pagination.limit)
+            };
+        }
+
+        return res.status(200).json(response);
     } catch (error) {
         return res.status(500).json({
             message: 'Failed to fetch assets',
