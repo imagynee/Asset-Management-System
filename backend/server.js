@@ -29,12 +29,14 @@ const dashboardRouter = require('./routes/dashboardRouter');
 const assetRouter = require('./routes/assetRouter');
 const employeeRouter = require('./routes/employeeRouter');
 const vendorRouter = require('./routes/vendorRouter');
+const categoryRouter = require('./routes/categoryRouter');
 const reportsRouter = require('./routes/reportsRouter');
 
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/assets', assetRouter);
 app.use('/api/employees', employeeRouter);
 app.use('/api/vendors', vendorRouter);
+app.use('/api/categories', categoryRouter);
 app.use('/api/reports', reportsRouter);
 
 

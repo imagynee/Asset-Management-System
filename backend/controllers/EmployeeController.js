@@ -8,8 +8,8 @@ const Asset = require('../models/Asset');
 const AssetHistory = require('../models/AssetHistory');
 const {populateAssetQuery} = require('../controllers/assetController');
 
-const generateTemporaryPassword = require('../utils/generateTemporaryPassword');
-const sendEmployeeWelcomeEmail = require('../utils/sendEmployeeWelcomeEmail');
+// const generateTemporaryPassword = require('../utils/generateTemporaryPassword');
+// const sendEmployeeWelcomeEmail = require('../utils/sendEmployeeWelcomeEmail');
 const {
     getAllEmployees,
     getEmployeeAssetHistory,
@@ -26,7 +26,7 @@ const removeUploadedFiles = (files = {}) => {       // If employee creation fail
         });
 };
 
-const buildEmployeePayload = (req, hashedPassword) => {
+const buildEmployeePayload = (req) => {
     const {
         name,
         empId,
@@ -41,7 +41,6 @@ const buildEmployeePayload = (req, hashedPassword) => {
         name,
         empId,
         email,
-        password: hashedPassword,
         designation,
         department,
         phone,
@@ -75,16 +74,16 @@ const createEmployee = async (req, res) => {
     let employee;
 
     try {
-        const temporaryPassword = generateTemporaryPassword(10);
-        const hashedPassword = await bcrypt.hash(temporaryPassword, 12);
-        const employeePayload = buildEmployeePayload(req, hashedPassword);
+        // const temporaryPassword = generateTemporaryPassword(10);
+        // const hashedPassword = await bcrypt.hash(temporaryPassword, 12);
+        const employeePayload = buildEmployeePayload(req);
 
         employee = await Employee.create(employeePayload);
 
-        await sendEmployeeWelcomeEmail({
-            employee,
-            temporaryPassword
-        });
+        // await sendEmployeeWelcomeEmail({
+        //     employee,
+        //     temporaryPassword
+        // });
 
         const employeeResponse = employee.toObject();       
         delete employeeResponse.password;           // removes the pwd recieved from obj sent by .create() promise and before sending it to client.
