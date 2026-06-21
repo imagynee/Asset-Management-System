@@ -119,6 +119,22 @@ const formatAssetDetails = (asset) => {
     return assetDetails;
 };
 
+const formatAssetListItem = (asset) => ({
+    _id: asset._id,
+    assetId: asset.assetId,
+    assetName: asset.assetName,
+    categoryName: asset.category?.categoryName || null,
+    serialNumber: asset.serialNumber,
+    model: asset.model,
+    assignedTo: asset.assignedTo
+        ? {
+            _id: asset.assignedTo._id,
+            empId: asset.assignedTo.empId,
+            name: asset.assignedTo.name
+        }
+        : null
+});
+
 const assignedHistoryActions = ['ASSIGNED', 'RETURNED', 'assigned', 'returned'];
 const maintenanceHistoryActions = ['MAINTENANCE_STARTED', 'MAINTENANCE_COMPLETED'];
 
@@ -147,7 +163,7 @@ const createAsset = async (req, res) => {
         
         return res.status(201).json({
             message: 'Asset created successfully',
-            asset
+            // asset
         });
     } catch (error) {
         return res.status(400).json({
@@ -162,7 +178,11 @@ const getAssets = async (req, res) => {
         const filter = buildAssetListFilter(req.query);
         const pagination = getPagination(req.query);
         const sort = getSort(req.query, assetSortFields, { createdAt: -1 });
-        const assetQuery = populateAssetQuery(Asset.find(filter).sort(sort));
+        const assetQuery = Asset.find(filter)
+            .select('_id assetId assetName category serialNumber model assignedTo')
+            .populate('category', 'categoryName')
+            .populate('assignedTo', '_id empId name')
+            .sort(sort);
 
         if (pagination.hasPagination) {
             assetQuery.skip(pagination.skip).limit(pagination.limit);
@@ -178,7 +198,7 @@ const getAssets = async (req, res) => {
         const response = {
             count: assets.length,
             totalCount,
-            assets,
+            assets: assets.map(formatAssetListItem),
             categories,
             status: ['Available', 'Assigned', 'Maintenance', 'Return Requested', 'Maintenance Requested'],
             vendors
@@ -309,7 +329,7 @@ const deleteAsset = async (req, res) => {
 
         return res.status(200).json({
             message: 'Asset deleted successfully',
-            asset
+            // asset
         });
     } catch (error) {
         return res.status(500).json({
