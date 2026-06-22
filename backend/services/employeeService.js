@@ -84,6 +84,7 @@ const getAllEmployees = async (query = {}) => {
 
     return {
         employees: employees.map((employee) => ({
+            _id: employee._id,
             name: employee.name,
             email: employee.email,
             phone: employee.phone,
