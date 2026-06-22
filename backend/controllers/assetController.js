@@ -200,7 +200,7 @@ const getAssets = async (req, res) => {
             totalCount,
             assets: assets.map(formatAssetListItem),
             categories,
-            status: ['Available', 'Assigned', 'Maintenance', 'Return Requested', 'Maintenance Requested'],
+            status: ['Available', 'Assigned', 'Maintenance'],
             vendors
         };
 
