@@ -10,7 +10,7 @@ const assetHistorySchema = new mongoose.Schema({
     employee: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Employee',
-        required: true
+        default: null
     },
 
     action: {
@@ -20,6 +20,7 @@ const assetHistorySchema = new mongoose.Schema({
             'RETURNED',
             'MAINTENANCE_STARTED',
             'MAINTENANCE_COMPLETED',
+            'DISPOSED',
         ],
         required: true
     },

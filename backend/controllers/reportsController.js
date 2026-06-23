@@ -146,6 +146,12 @@ const exportAssetReport = async (req, res) => {
             fileName: 'maintenance-assets-report.xlsx',
             sheetName: 'Maintenance Assets',
             includeAssignmentFields: false
+        },
+        disposed: {
+            statuses: ['Disposed'],
+            fileName: 'disposed-assets-report.xlsx',
+            sheetName: 'Disposed Assets',
+            includeAssignmentFields: false
         }
     };
 

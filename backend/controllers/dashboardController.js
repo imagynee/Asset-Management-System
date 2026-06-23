@@ -41,6 +41,7 @@ const getDashboard = async (req, res) => {
             assignedAssets,
             availableAssets,
             underMaintenance,
+            disposedAssets,
             assetsGroupedByCategory,
             recentAssets
         ] = await Promise.all([
@@ -55,6 +56,9 @@ const getDashboard = async (req, res) => {
 
             // Count assets currently marked for repair/maintenance.
             Asset.countDocuments({ status: 'Maintenance' }),
+
+            // Count assets that have been disposed.
+            Asset.countDocuments({ status: 'Disposed' }),
 
             // Count assets grouped by their category name.
             Asset.aggregate([
@@ -88,7 +92,7 @@ const getDashboard = async (req, res) => {
             // Fetch the newest assets for the dashboard table with assigned user details.
             Asset.find()
                 .sort({ createdAt: -1 })
-                .limit(10)
+                .limit(5)
                 .select('assetId assetName category department serialNumber status assignedTo')
                 .populate('category', 'categoryName')
                 .populate('department', 'deptName deptIncharge')
@@ -104,7 +108,8 @@ const getDashboard = async (req, res) => {
         const assetStatusPercentages = {
             assigned: totalAssets === 0 ? 0 : Number(((assignedAssets / totalAssets) * 100).toFixed(2)),
             available: totalAssets === 0 ? 0 : Number(((availableAssets / totalAssets) * 100).toFixed(2)),
-            underMaintenance: totalAssets === 0 ? 0 : Number(((underMaintenance / totalAssets) * 100).toFixed(2))
+            underMaintenance: totalAssets === 0 ? 0 : Number(((underMaintenance / totalAssets) * 100).toFixed(2)),
+            disposed: totalAssets === 0 ? 0 : Number(((disposedAssets / totalAssets) * 100).toFixed(2))
         };
 
         const formattedRecentAssets = recentAssets.map((asset) => ({
@@ -133,7 +138,8 @@ const getDashboard = async (req, res) => {
                 totalAssets,
                 assignedAssets,
                 availableAssets,
-                underMaintenance
+                underMaintenance,
+                disposedAssets
             },
             assetsByCategory,
             assetStatusPercentages,

@@ -158,8 +158,10 @@ const formatAssetListItem = (asset) => ({
         : null
 });
 
+const assetStatuses = ['Available', 'Assigned', 'Maintenance', 'Disposed'];
 const assignedHistoryActions = ['ASSIGNED', 'RETURNED', 'assigned', 'returned'];
 const maintenanceHistoryActions = ['MAINTENANCE_STARTED', 'MAINTENANCE_COMPLETED'];
+const disposedHistoryActions = ['DISPOSED'];
 
 const formatAssignedHistory = (entry) => ({
     employee: formatEmployeeBrief(entry.employee),
@@ -175,6 +177,13 @@ const formatMaintenanceHistory = (entry) => ({
     status: entry.action === 'MAINTENANCE_STARTED'
         ? 'under maintenance'
         : 'maintenance completed'
+});
+
+const formatDisposedHistory = (entry) => ({
+    employee: formatEmployeeBrief(entry.employee),
+    actionDate: entry.actionDate,
+    status: 'disposed',
+    remarks: entry.remarks
 });
 
 const createAsset = async (req, res) => {
@@ -225,7 +234,7 @@ const getAssets = async (req, res) => {
             totalCount,
             assets: assets.map(formatAssetListItem),
             categories,
-            status: ['Available', 'Assigned', 'Maintenance'],
+            status: assetStatuses,
             vendors,
             departments
         };
@@ -274,10 +283,15 @@ const getAssetById = async (req, res) => {
             .filter((entry) => maintenanceHistoryActions.includes(entry.action))
             .map(formatMaintenanceHistory);
 
+        const disposedHistory = history
+            .filter((entry) => disposedHistoryActions.includes(entry.action))
+            .map(formatDisposedHistory);
+
         return res.status(200).json({
             asset: formatAssetDetails(asset),
             assignedHistory,
-            maintenanceHistory
+            maintenanceHistory,
+            disposedHistory
         });
     } catch (error) {
         return res.status(500).json({
@@ -315,6 +329,39 @@ const getAssetQrCode = (req, res) => {
 
 const updateAsset = async (req, res) => {
     try {
+        if (req.query.status === 'dispose') {
+            const existingAsset = await Asset.findById(req.params.id);
+
+            if (!existingAsset) {
+                return res.status(404).json({
+                    message: 'Asset not found'
+                });
+            }
+
+            const employeeId = existingAsset.assignedTo || null;
+
+            existingAsset.status = 'Disposed';
+            existingAsset.assignedTo = null;
+            existingAsset.assignedDate = null;
+            await existingAsset.save();
+
+            await AssetHistory.create({
+                asset: existingAsset._id,
+                employee: employeeId,
+                action: 'DISPOSED',
+                remarks: typeof req.body.remarks === 'string' && req.body.remarks.trim()
+                    ? req.body.remarks.trim()
+                    : 'Asset disposed',
+                actionDate: new Date()
+            });
+
+            const asset = await populateAssetQuery(Asset.findById(existingAsset._id));
+
+            return res.status(200).json({
+                message: 'Asset disposed successfully',
+            });
+        }
+
         const asset = await populateAssetQuery(
             Asset.findByIdAndUpdate(
                 req.params.id,

@@ -387,14 +387,14 @@ const assignAsset = async (req, res) => {
                 message: 'One or more assets were not found'
             });
         }
-        const alreadyAssigned = assets.filter(      // find all assets already assigned.
-            asset => asset.status === 'Assigned'
+        const unavailableAssets = assets.filter(      // find all assets that cannot be assigned.
+            asset => asset.status !== 'Available'
         );
 
-        if (alreadyAssigned.length) {
+        if (unavailableAssets.length) {
             return res.status(400).json({
-                message: 'One or more assets are already assigned',
-                alreadyAssigned
+                message: 'Only available assets can be assigned',
+                unavailableAssets
             });
         }
 
