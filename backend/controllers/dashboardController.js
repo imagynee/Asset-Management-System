@@ -1,4 +1,5 @@
 const Asset = require('../models/Asset');
+const AssetHistory = require('../models/AssetHistory');
 require('../models/Category');
 require('../models/Vendor');
 require('../models/Department');
@@ -34,6 +35,33 @@ const formatExpiredAsset = (asset, today) => ({
     expiredDays: Math.max(1, Math.ceil((today - asset.warrantyExpiry) / MS_PER_DAY))
 });
 
+const getActivityStatus = (action) => {
+    const statuses = {
+        ASSIGNED: 'assigned',
+        RETURNED: 'returned',
+        MAINTENANCE_STARTED: 'maintenance_started',
+        MAINTENANCE_COMPLETED: 'maintenance_completed',
+        DISPOSED: 'disposed'
+    };
+
+    return statuses[action] || action?.toLowerCase() || null;
+};
+
+const formatRecentActivity = (activity) => ({
+    assetName: activity.asset?.assetName || null,
+    model: activity.asset?.model || null,
+    assetId: activity.asset?.assetId || null,
+    status: getActivityStatus(activity.action),
+    assignedTo: activity.employee
+        ? {
+            employeeName: activity.employee.name,
+            empId: activity.employee.empId,
+            _id: activity.employee._id
+        }
+        : null,
+    createdAt: activity.createdAt
+});
+
 const getDashboard = async (req, res) => {
     try {
         const [
@@ -43,7 +71,8 @@ const getDashboard = async (req, res) => {
             underMaintenance,
             disposedAssets,
             assetsGroupedByCategory,
-            recentAssets
+            recentAssets,
+            recentActivity
         ] = await Promise.all([
             // Count every asset document in the collection.
             Asset.countDocuments(),
@@ -97,6 +126,14 @@ const getDashboard = async (req, res) => {
                 .populate('category', 'categoryName')
                 .populate('department', 'deptName deptIncharge')
                 .populate('assignedTo', 'name empId')
+                .lean(),
+
+            // Fetch the latest 5 activities from asset history for the dashboard feed.
+            AssetHistory.find()
+                .sort({ createdAt: -1 })
+                .limit(5)
+                .populate('asset', 'assetName model assetId')
+                .populate('employee', 'name empId')
                 .lean()
         ]);
 
@@ -143,7 +180,8 @@ const getDashboard = async (req, res) => {
             },
             assetsByCategory,
             assetStatusPercentages,
-            recentAssets: formattedRecentAssets
+            recentAssets: formattedRecentAssets,
+            recentActivity: recentActivity.map(formatRecentActivity)
         });
     } catch (error) {
         console.error('Dashboard fetch failed:', error);
