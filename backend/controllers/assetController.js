@@ -179,6 +179,45 @@ const formatMaintenanceHistory = (entry) => ({
         : 'maintenance completed'
 });
 
+const getMaintenanceHistoryStatus = (action) => {
+    return action === 'MAINTENANCE_STARTED'
+        ? 'maintenance_started'
+        : 'maintenance_completed';
+};
+
+const formatMaintenanceHistoryItem = (entry) => {
+    const asset = entry.asset;
+    const assignedTo = asset?.assignedTo || entry.employee;
+
+    return {
+        historyId: entry._id,
+        _id: asset?._id || null,
+        name: asset?.assetName || null,
+        assetName: asset?.assetName || null,
+        assetId: asset?.assetId || null,
+        model: asset?.model || null,
+        department: asset?.department
+            ? {
+                _id: asset.department._id,
+                deptName: asset.department.deptName,
+                deptIncharge: asset.department.deptIncharge
+            }
+            : null,
+        categoryName: asset?.category?.categoryName || null,
+        vendorName: asset?.vendor?.vendorName || null,
+        status: getMaintenanceHistoryStatus(entry.action),
+        assignedTo: assignedTo
+            ? {
+                _id: assignedTo._id,
+                empId: assignedTo.empId,
+                name: assignedTo.name
+            }
+            : null,
+        remarks: entry.remarks,
+        actionDate: entry.actionDate
+    };
+};
+
 const formatDisposedHistory = (entry) => ({
     employee: formatEmployeeBrief(entry.employee),
     actionDate: entry.actionDate,
@@ -301,6 +340,65 @@ const getAssetById = async (req, res) => {
     }
 };
 
+const getMaintenanceHistory = async (req, res) => {
+    try {
+        const history = await AssetHistory.find({
+            action: { $in: maintenanceHistoryActions }
+        })
+            .populate({
+                path: 'asset',
+                select: '_id assetName assetId model department category vendor assignedTo',
+                populate: [
+                    {
+                        path: 'department',
+                        select: '_id deptName deptIncharge'
+                    },
+                    {
+                        path: 'category',
+                        select: 'categoryName'
+                    },
+                    {
+                        path: 'vendor',
+                        select: 'vendorName'
+                    },
+                    {
+                        path: 'assignedTo',
+                        select: '_id empId name'
+                    }
+                ]
+            })
+            .populate('employee', '_id empId name')
+            .sort({ actionDate: -1, createdAt: -1 });
+
+        const maintenanceHistory = history.map(formatMaintenanceHistoryItem);
+        const latestMaintenanceStatusByAsset = maintenanceHistory.reduce((latestStatuses, entry) => {
+            if (entry._id) {
+                const assetObjectId = entry._id.toString();
+
+                if (!latestStatuses.has(assetObjectId)) {
+                    latestStatuses.set(assetObjectId, entry.status);
+                }
+            }
+
+            return latestStatuses;
+        }, new Map());
+        const maintenanceStartedAssetIds = [...latestMaintenanceStatusByAsset.entries()]
+            .filter(([, status]) => status === 'maintenance_started')
+            .map(([assetObjectId]) => assetObjectId);
+
+        return res.status(200).json({
+            count: maintenanceHistory.length,
+            maintenanceHistory,
+            maintenanceStartedAssetIds
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: 'Failed to fetch maintenance history',
+            error: error.message
+        });
+    }
+};
+
 const assetQrCodesDir = path.join(__dirname, '..', 'uploads', 'AssetQrCodes');
 
 const getAssetQrCode = (req, res) => {
@@ -417,6 +515,7 @@ const deleteAsset = async (req, res) => {
 module.exports = {
     createAsset,
     getAssets,
+    getMaintenanceHistory,
     getAssetById,
     getAssetQrCode,
     updateAsset,

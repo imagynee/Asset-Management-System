@@ -8,7 +8,8 @@ const {
 const router = express.Router();
 
 router.get('/assets/all', exportAllAssetsReport);
-router.get('/assets/:reportType', exportAssetReport);
 router.get('/employees/all', exportAllEmployeesReport);
+router.get('/assets/:reportType', exportAssetReport);
+
 
 module.exports = router;
