@@ -1,4 +1,5 @@
 const Vendor = require('../models/Vendor');
+const Asset = require('../models/Asset');
 
 const buildVendorPayload = (body) => {
     const allowedFields = [
@@ -56,7 +57,74 @@ const getVendors = async (req, res) => {
     }
 };
 
+const updateVendor = async (req, res) => {
+    try {
+        const vendor = await Vendor.findByIdAndUpdate(
+            req.params.id,
+            buildVendorPayload(req.body),
+            {
+                new: true,
+                runValidators: true
+            }
+        );
+
+        if (!vendor) {
+            return res.status(404).json({
+                success: false,
+                message: 'Vendor not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Vendor updated successfully',
+            vendor
+        });
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            message: 'Failed to update vendor',
+            error: error.message
+        });
+    }
+};
+
+const deleteVendor = async (req, res) => {
+    try {
+        const assetCount = await Asset.countDocuments({ vendor: req.params.id });
+
+        if (assetCount > 0) {
+            return res.status(409).json({
+                success: false,
+                message: 'Vendor is assigned to one or more assets and cannot be deleted'
+            });
+        }
+
+        const vendor = await Vendor.findByIdAndDelete(req.params.id);
+
+        if (!vendor) {
+            return res.status(404).json({
+                success: false,
+                message: 'Vendor not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Vendor deleted successfully'
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to delete vendor',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     createVendor,
-    getVendors
+    getVendors,
+    updateVendor,
+    deleteVendor
 };

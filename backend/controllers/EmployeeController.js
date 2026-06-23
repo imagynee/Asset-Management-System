@@ -26,6 +26,18 @@ const removeUploadedFiles = (files = {}) => {       // If employee creation fail
         });
 };
 
+const removeStoredFile = (filePath) => {
+    if (!filePath) {
+        return;
+    }
+
+    const absolutePath = path.join(__dirname, '..', filePath.replace(/^\/+/, ''));
+
+    if (fs.existsSync(absolutePath)) {
+        fs.unlinkSync(absolutePath);
+    }
+};
+
 const buildEmployeePayload = (req) => {
     const {
         name,
@@ -222,6 +234,108 @@ const getEmployeeHistory = async (req, res) => {
     }
 };
 
+const updateEmployee = async (req, res) => {
+    try {
+        if (!validateEmployeeId(req.params.id, res)) {
+            return;
+        }
+
+        const existingEmployee = await Employee.findById(req.params.id);
+
+        if (!existingEmployee) {
+            removeUploadedFiles(req.files);
+
+            return res.status(404).json({
+                success: false,
+                message: 'Employee not found'
+            });
+        }
+
+        const employeePayload = buildEmployeePayload(req);
+        const employee = await Employee.findByIdAndUpdate(
+            req.params.id,
+            employeePayload,
+            {
+                new: true,
+                runValidators: true
+            }
+        ).select('-password');
+
+        if (employeePayload.profilePic && existingEmployee.profilePic) {
+            removeStoredFile(existingEmployee.profilePic);
+        }
+
+        if (employeePayload.idProofDoc && existingEmployee.idProofDoc) {
+            removeStoredFile(existingEmployee.idProofDoc);
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Employee updated successfully',
+            employee
+        });
+    } catch (error) {
+        removeUploadedFiles(req.files);
+
+        if (error.code === 11000) {
+            return res.status(409).json({
+                success: false,
+                message: 'Employee with this email or employee ID already exists',
+                error: error.message
+            });
+        }
+
+        return res.status(400).json({
+            success: false,
+            message: 'Failed to update employee',
+            error: error.message
+        });
+    }
+};
+
+const deleteEmployee = async (req, res) => {
+    try {
+        if (!validateEmployeeId(req.params.id, res)) {
+            return;
+        }
+
+        const assignedAssetCount = await Asset.countDocuments({
+            assignedTo: req.params.id,
+            status: { $in: ['Assigned', 'Maintenance'] }
+        });
+
+        if (assignedAssetCount > 0) {
+            return res.status(409).json({
+                success: false,
+                message: 'Employee has assigned assets and cannot be deleted'
+            });
+        }
+
+        const employee = await Employee.findByIdAndDelete(req.params.id);
+
+        if (!employee) {
+            return res.status(404).json({
+                success: false,
+                message: 'Employee not found'
+            });
+        }
+
+        removeStoredFile(employee.profilePic);
+        removeStoredFile(employee.idProofDoc);
+
+        return res.status(200).json({
+            success: true,
+            message: 'Employee deleted successfully'
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to delete employee',
+            error: error.message
+        });
+    }
+};
+
 
 const assignAsset = async (req, res) => {
     try {
@@ -331,6 +445,8 @@ module.exports = {
     getEmployees,
     getEmployeeById,
     getEmployeeHistory,
+    updateEmployee,
+    deleteEmployee,
     assignAsset,
 };
 

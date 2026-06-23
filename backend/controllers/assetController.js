@@ -7,6 +7,7 @@ const Asset = require('../models/Asset');
 const AssetHistory = require('../models/AssetHistory');
 const Category = require('../models/Category');
 const Vendor = require('../models/Vendor');
+const Department = require('../models/Department');
 const Employee = require('../models/Employee');
 const {
     getSearchFilter,
@@ -23,6 +24,7 @@ const buildAssetPayload = (req) => {
         'assetName',
         'category',
         'vendor',
+        'department',
         'model',
         'serialNumber',
         'purchaseDate',
@@ -54,6 +56,7 @@ const populateAssetQuery = (query) => {
     return query
         .populate('category')
         .populate('vendor')
+        .populate('department')
         .populate('assignedTo');
 };
 
@@ -68,6 +71,7 @@ const buildAssetListFilter = (query) => {
     const statuses = toArray(query.status);
     const categories = toArray(query.category || query.categoryId);
     const vendors = toArray(query.vendor || query.vendorId);
+    const departments = toArray(query.department || query.departmentId);
     const assignedTo = toArray(query.assignedTo || query.employeeId);
 
     if (statuses.length) {
@@ -80,6 +84,10 @@ const buildAssetListFilter = (query) => {
 
     if (vendors.length) {
         filter.vendor = { $in: vendors };
+    }
+
+    if (departments.length) {
+        filter.department = { $in: departments };
     }
 
     if (assignedTo.length) {
@@ -114,6 +122,14 @@ const formatAssetDetails = (asset) => {
         : null;
 
     assetDetails.category = asset.category?.categoryName || null;
+    assetDetails.department = asset.department
+        ? {
+            _id: asset.department._id,
+            deptName: asset.department.deptName,
+            deptIncharge: asset.department.deptIncharge,
+            additionalNote: asset.department.additionalNote
+        }
+        : null;
     assetDetails.assignedTo = formatEmployeeBrief(asset.assignedTo);
 
     return assetDetails;
@@ -124,6 +140,13 @@ const formatAssetListItem = (asset) => ({
     assetId: asset.assetId,
     assetName: asset.assetName,
     categoryName: asset.category?.categoryName || null,
+    department: asset.department
+        ? {
+            _id: asset.department._id,
+            deptName: asset.department.deptName,
+            deptIncharge: asset.department.deptIncharge
+        }
+        : null,
     serialNumber: asset.serialNumber,
     model: asset.model,
     assignedTo: asset.assignedTo
@@ -179,8 +202,9 @@ const getAssets = async (req, res) => {
         const pagination = getPagination(req.query);
         const sort = getSort(req.query, assetSortFields, { createdAt: -1 });
         const assetQuery = Asset.find(filter)
-            .select('_id assetId assetName category serialNumber model assignedTo')
+            .select('_id assetId assetName category department serialNumber model assignedTo')
             .populate('category', 'categoryName')
+            .populate('department', 'deptName deptIncharge additionalNote')
             .populate('assignedTo', '_id empId name')
             .sort(sort);
 
@@ -188,10 +212,11 @@ const getAssets = async (req, res) => {
             assetQuery.skip(pagination.skip).limit(pagination.limit);
         }
 
-        const [assets, categories, vendors] = await Promise.all([
+        const [assets, categories, vendors, departments] = await Promise.all([
             assetQuery,
             Category.find().sort({ categoryName: 1 }),
-            Vendor.find().sort({ vendorName: 1 })
+            Vendor.find().sort({ vendorName: 1 }),
+            Department.find().sort({ deptName: 1 })
         ]);
 
         const totalCount = await Asset.countDocuments(filter);
@@ -201,7 +226,8 @@ const getAssets = async (req, res) => {
             assets: assets.map(formatAssetListItem),
             categories,
             status: ['Available', 'Assigned', 'Maintenance'],
-            vendors
+            vendors,
+            departments
         };
 
         if (pagination.hasPagination) {
@@ -227,6 +253,7 @@ const getAssetById = async (req, res) => {
             Asset.findById(req.params.id)
                 .populate('vendor', 'vendorName phone')
                 .populate('category', 'categoryName')
+                .populate('department', 'deptName deptIncharge')
                 .populate('assignedTo', 'empId name phone department'),
             AssetHistory.find({ asset: req.params.id })
                 .populate('employee', 'empId name phone department')

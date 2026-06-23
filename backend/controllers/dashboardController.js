@@ -1,6 +1,7 @@
 const Asset = require('../models/Asset');
 require('../models/Category');
 require('../models/Vendor');
+require('../models/Department');
 require('../models/Employee');
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -88,8 +89,9 @@ const getDashboard = async (req, res) => {
             Asset.find()
                 .sort({ createdAt: -1 })
                 .limit(10)
-                .select('assetId assetName category serialNumber status assignedTo')
+                .select('assetId assetName category department serialNumber status assignedTo')
                 .populate('category', 'categoryName')
+                .populate('department', 'deptName deptIncharge')
                 .populate('assignedTo', 'name empId')
                 .lean()
         ]);
@@ -109,6 +111,13 @@ const getDashboard = async (req, res) => {
             assetId: asset.assetId,
             assetName: asset.assetName,
             categoryName: asset.category?.categoryName || null,
+            department: asset.department
+                ? {
+                    _id: asset.department._id,
+                    deptName: asset.department.deptName,
+                    deptIncharge: asset.department.deptIncharge
+                }
+                : null,
             serialNumber: asset.serialNumber,
             status: asset.status,
             assignedTo: asset.assignedTo

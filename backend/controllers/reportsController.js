@@ -7,6 +7,7 @@ const populateReportAssetQuery = (query) => {
     return query
         .populate('category')
         .populate('vendor')
+        .populate('department')
         .populate('assignedTo');
 };
 
@@ -34,6 +35,14 @@ const getVendorName = (vendor) => {
     return vendor.vendorName || vendor.toString();
 };
 
+const getDepartmentName = (department) => {
+    if (!department) {
+        return '';
+    }
+
+    return department.deptName || department.toString();
+};
+
 const buildAssetReportRows = (assets, includeAssignmentFields = false) => {
     return assets.map((asset) => {
         const row = {
@@ -43,6 +52,7 @@ const buildAssetReportRows = (assets, includeAssignmentFields = false) => {
             'Serial Number': asset.serialNumber || '',
             'Category Name': getCategoryName(asset.category),
             'Vendor': getVendorName(asset.vendor),
+            'Department': getDepartmentName(asset.department),
             'Purchase Date': formatReportDate(asset.purchaseDate),
             'Purchase Cost': asset.purchaseCost ?? '',
             'Warranty Expiry Date': formatReportDate(asset.warrantyExpiry),
@@ -65,6 +75,7 @@ const baseReportHeaders = [
     'Serial Number',
     'Category Name',
     'Vendor',
+    'Department',
     'Purchase Date',
     'Purchase Cost',
     'Warranty Expiry Date',

@@ -30,13 +30,17 @@ const assetRouter = require('./routes/assetRouter');
 const employeeRouter = require('./routes/employeeRouter');
 const vendorRouter = require('./routes/vendorRouter');
 const categoryRouter = require('./routes/categoryRouter');
+const departmentRouter = require('./routes/departmentRouter');
 const reportsRouter = require('./routes/reportsRouter');
+const authRouter = require('./routes/authRouter');
 
+app.use('/api/auth', authRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/assets', assetRouter);
 app.use('/api/employees', employeeRouter);
 app.use('/api/vendors', vendorRouter);
 app.use('/api/categories', categoryRouter);
+app.use('/api/departments', departmentRouter);
 app.use('/api/reports', reportsRouter);
 
 

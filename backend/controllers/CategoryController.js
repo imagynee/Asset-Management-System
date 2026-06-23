@@ -1,4 +1,5 @@
 const Category = require('../models/Category');
+const Asset = require('../models/Asset');
 
 const buildCategoryPayload = (body) => {
     const allowedFields = [
@@ -83,7 +84,80 @@ const getCategories = async (req, res) => {
     }
 };
 
+const updateCategory = async (req, res) => {
+    try {
+        const payload = buildCategoryPayload(req.body);
+
+        if (payload.categoryName) {
+            payload.categoryName = payload.categoryName.trim();
+        }
+
+        const category = await Category.findByIdAndUpdate(
+            req.params.id,
+            payload,
+            {
+                new: true,
+                runValidators: true
+            }
+        );
+
+        if (!category) {
+            return res.status(404).json({
+                success: false,
+                message: 'Category not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Category updated successfully',
+            category
+        });
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            message: 'Failed to update category',
+            error: error.message
+        });
+    }
+};
+
+const deleteCategory = async (req, res) => {
+    try {
+        const assetCount = await Asset.countDocuments({ category: req.params.id });
+
+        if (assetCount > 0) {
+            return res.status(409).json({
+                success: false,
+                message: 'Category is assigned to one or more assets and cannot be deleted'
+            });
+        }
+
+        const category = await Category.findByIdAndDelete(req.params.id);
+
+        if (!category) {
+            return res.status(404).json({
+                success: false,
+                message: 'Category not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Category deleted successfully'
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to delete category',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     createCategory,
-    getCategories
+    getCategories,
+    updateCategory,
+    deleteCategory
 };

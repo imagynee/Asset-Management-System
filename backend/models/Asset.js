@@ -25,6 +25,12 @@ const assetSchema = new mongoose.Schema({
         required: true
     },
 
+    department: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Department',
+        required: true
+    },
+
     model: {
         type: String,
         trim: true
