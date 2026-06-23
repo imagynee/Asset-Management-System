@@ -33,6 +33,7 @@ const categoryRouter = require('./routes/categoryRouter');
 const departmentRouter = require('./routes/departmentRouter');
 const reportsRouter = require('./routes/reportsRouter');
 const authRouter = require('./routes/authRouter');
+const returnRouter = require('./routes/returnRouter');
 
 app.use('/api/auth', authRouter);
 app.use('/api/dashboard', dashboardRouter);
@@ -42,6 +43,7 @@ app.use('/api/vendors', vendorRouter);
 app.use('/api/categories', categoryRouter);
 app.use('/api/departments', departmentRouter);
 app.use('/api/reports', reportsRouter);
+app.use('/api/return', returnRouter);
 
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

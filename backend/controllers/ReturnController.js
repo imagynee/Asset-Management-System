@@ -28,6 +28,74 @@ const findAssetFromFormData = async (req) => {
     return Asset.findOne({ assetId });
 };
 
+const formatReturnedAsset = (entry) => {
+    const asset = entry.asset;
+
+    return {
+        historyId: entry._id,
+        _id: asset?._id || null,
+        name: asset?.assetName || null,
+        assetName: asset?.assetName || null,
+        assetId: asset?.assetId || null,
+        model: asset?.model || null,
+        department: asset?.department
+            ? {
+                _id: asset.department._id,
+                deptName: asset.department.deptName,
+                deptIncharge: asset.department.deptIncharge
+            }
+            : null,
+        categoryName: asset?.category?.categoryName || null,
+        vendorName: asset?.vendor?.vendorName || null,
+        status: 'returned',
+        assignedTo: entry.employee
+            ? {
+                _id: entry.employee._id,
+                empId: entry.employee.empId,
+                name: entry.employee.name
+            }
+            : null,
+        remarks: entry.remarks,
+        actionDate: entry.actionDate
+    };
+};
+
+const getReturnedAssets = async (req, res) => {
+    try {
+        const returnedAssets = await AssetHistory.find({ action: 'RETURNED' })
+            .populate({
+                path: 'asset',
+                select: '_id assetName assetId model department category vendor',
+                populate: [
+                    {
+                        path: 'department',
+                        select: '_id deptName deptIncharge'
+                    },
+                    {
+                        path: 'category',
+                        select: 'categoryName'
+                    },
+                    {
+                        path: 'vendor',
+                        select: 'vendorName'
+                    }
+                ]
+            })
+            .populate('employee', '_id empId name')
+            .sort({ actionDate: -1, createdAt: -1 });
+
+        return res.status(200).json({
+            count: returnedAssets.length,
+            returnedAssets: returnedAssets.map(formatReturnedAsset)
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: 'Failed to fetch returned assets',
+            error: error.message
+        });
+    }
+};
+
 const returnAsset = async (req, res) => {
     try {
         const existingAsset = await findAssetFromFormData(req);
@@ -80,5 +148,6 @@ const returnAsset = async (req, res) => {
 };
 
 module.exports = {
+    getReturnedAssets,
     returnAsset
 };
