@@ -230,7 +230,7 @@ const createAsset = async (req, res) => {
     try {
         const asset = await Asset.create(buildAssetPayload(req));
         
-        await QRCode.toFile(`uploads/AssetQrCodes/${asset.assetId}.png`, asset.assetId);
+        await QRCode.toFile(`uploads/AssetQrCodes/${asset.assetId}.png`, asset);
         
         return res.status(201).json({
             message: 'Asset created successfully',

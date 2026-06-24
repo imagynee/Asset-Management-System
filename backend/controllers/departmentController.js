@@ -1,5 +1,6 @@
 const Department = require('../models/Department');
 const Asset = require('../models/Asset');
+const { getAssetCountsByField, attachAssetCounts } = require('../utils/assetCounts');
 
 const buildDepartmentPayload = (body) => {
     const fieldAliases = {
@@ -70,11 +71,13 @@ const createDepartment = async (req, res) => {
 const getDepartments = async (req, res) => {
     try {
         const departments = await Department.find().sort({ deptName: 1 });
+        const countMap = await getAssetCountsByField(Asset, 'department');
+        const departmentsWithCounts = attachAssetCounts(departments, countMap);
 
         return res.status(200).json({
             success: true,
             count: departments.length,
-            departments
+            departments: departmentsWithCounts
         });
     } catch (error) {
         return res.status(500).json({

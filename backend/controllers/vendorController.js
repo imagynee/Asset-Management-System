@@ -1,5 +1,6 @@
 const Vendor = require('../models/Vendor');
 const Asset = require('../models/Asset');
+const { getAssetCountsByField, attachAssetCounts } = require('../utils/assetCounts');
 
 const buildVendorPayload = (body) => {
     const allowedFields = [
@@ -42,11 +43,13 @@ const createVendor = async (req, res) => {
 const getVendors = async (req, res) => {
     try {
         const vendors = await Vendor.find().sort({ vendorName: 1 });
+        const countMap = await getAssetCountsByField(Asset, 'vendor');
+        const vendorsWithCounts = attachAssetCounts(vendors, countMap);
 
         return res.status(200).json({
             success: true,
             count: vendors.length,
-            vendors
+            vendors: vendorsWithCounts
         });
     } catch (error) {
         return res.status(500).json({

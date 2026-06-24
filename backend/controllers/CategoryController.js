@@ -1,5 +1,6 @@
 const Category = require('../models/Category');
 const Asset = require('../models/Asset');
+const { getAssetCountsByField, attachAssetCounts } = require('../utils/assetCounts');
 
 const buildCategoryPayload = (body) => {
     const allowedFields = [
@@ -69,11 +70,13 @@ const createCategory = async (req, res) => {
 const getCategories = async (req, res) => {
     try {
         const categories = await Category.find().sort({ categoryName: 1 });
+        const countMap = await getAssetCountsByField(Asset, 'category');
+        const categoriesWithCounts = attachAssetCounts(categories, countMap);
 
         return res.status(200).json({
             success: true,
             count: categories.length,
-            categories,
+            categories: categoriesWithCounts,
         });
     } catch (error) {
         return res.status(500).json({
