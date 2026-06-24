@@ -1,0 +1,23 @@
+import { Menu } from 'lucide-react';
+
+export default function Header({ onMenuClick, title }) {
+  return (
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/90 px-4 backdrop-blur lg:px-8">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onMenuClick}
+          className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wider text-brand-700">
+            Admin Portal
+          </p>
+          <p className="text-sm font-semibold text-slate-900">{title}</p>
+        </div>
+      </div>
+    </header>
+  );
+}
