@@ -44,7 +44,8 @@ const assetSchema = new mongoose.Schema({
     },
 
     purchaseDate: {
-        type: Date
+        type: Date,
+        required: true
     },
 
     purchaseCost: {
@@ -58,6 +59,10 @@ const assetSchema = new mongoose.Schema({
     },
 
     assetImage: {
+        type: String
+    },
+
+    assetInvoice: {
         type: String
     },
 

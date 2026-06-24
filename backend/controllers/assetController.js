@@ -45,8 +45,15 @@ const buildAssetPayload = (req) => {
         payload.additionalNotes = req.body.description;
     }
 
-    if (req.file) {
-        payload.assetImage = `/uploads/assets/${req.file.filename}`;
+    const assetImage = req.files?.assetImage?.[0] || req.file;
+    const assetInvoice = req.files?.assetInvoice?.[0];
+
+    if (assetImage) {
+        payload.assetImage = `/uploads/assets/${assetImage.filename}`;
+    }
+
+    if (assetInvoice) {
+        payload.assetInvoice = `/uploads/asset-invoices/${assetInvoice.filename}`;
     }
 
     return payload;
@@ -135,10 +142,57 @@ const formatAssetDetails = (asset) => {
     return assetDetails;
 };
 
+const formatQrDate = (date) => {
+    if (!date) {
+        return 'N/A';
+    }
+
+    return new Date(date).toISOString().split('T')[0];
+};
+
+const formatAssetQrPayload = (asset) => {
+    const lines = [
+        'Asset Management System',
+        `Asset ID: ${asset.assetId || 'N/A'}`,
+        `Name: ${asset.assetName || 'N/A'}`,
+        `Category: ${asset.category?.categoryName || 'N/A'}`,
+        `Department: ${asset.department?.deptName || 'N/A'}`,
+        `Vendor: ${asset.vendor?.vendorName || 'N/A'}`,
+        `Model: ${asset.model || 'N/A'}`,
+        `Serial No: ${asset.serialNumber || 'N/A'}`,
+        `Purchase Date: ${formatQrDate(asset.purchaseDate)}`,
+        `Warranty Expiry: ${formatQrDate(asset.warrantyExpiry)}`,
+        `Status: ${asset.status || 'N/A'}`
+    ];
+
+    if (asset.assignedTo) {
+        lines.push(`Assigned To: ${asset.assignedTo.name || 'N/A'} (${asset.assignedTo.empId || 'N/A'})`);
+    }
+
+    if (asset.assetInvoice) {
+        lines.push(`Invoice: ${asset.assetInvoice}`);
+    }
+
+    if (asset.additionalNotes) {
+        lines.push(`Notes: ${asset.additionalNotes}`);
+    }
+
+    return lines.join('\n');
+};
+
+const generateAssetQrCode = async (asset) => {
+    fs.mkdirSync(assetQrCodesDir, { recursive: true });
+    await QRCode.toFile(
+        path.join(assetQrCodesDir, `${asset.assetId}.png`),
+        formatAssetQrPayload(asset)
+    );
+};
+
 const formatAssetListItem = (asset) => ({
     _id: asset._id,
     assetId: asset.assetId,
     assetName: asset.assetName,
+    status: asset.status,
     categoryName: asset.category?.categoryName || null,
     department: asset.department
         ? {
@@ -229,12 +283,13 @@ const createAsset = async (req, res) => {
     
     try {
         const asset = await Asset.create(buildAssetPayload(req));
+        const populatedAsset = await populateAssetQuery(Asset.findById(asset._id));
         
-        await QRCode.toFile(`uploads/AssetQrCodes/${asset.assetId}.png`, asset);
+        await generateAssetQrCode(populatedAsset);
         
         return res.status(201).json({
             message: 'Asset created successfully',
-            // asset
+            asset: populatedAsset
         });
     } catch (error) {
         return res.status(400).json({
@@ -250,7 +305,7 @@ const getAssets = async (req, res) => {
         const pagination = getPagination(req.query);
         const sort = getSort(req.query, assetSortFields, { createdAt: -1 });
         const assetQuery = Asset.find(filter)
-            .select('_id assetId assetName category department serialNumber model assignedTo')
+            .select('_id assetId assetName status category department serialNumber model assignedTo')
             .populate('category', 'categoryName')
             .populate('department', 'deptName deptIncharge additionalNote')
             .populate('assignedTo', '_id empId name')
@@ -447,13 +502,14 @@ const updateAsset = async (req, res) => {
                 asset: existingAsset._id,
                 employee: employeeId,
                 action: 'DISPOSED',
-                remarks: typeof req.body.remarks === 'string' && req.body.remarks.trim()
+                remarks: typeof req.body?.remarks === 'string' && req.body.remarks.trim()
                     ? req.body.remarks.trim()
                     : 'Asset disposed',
                 actionDate: new Date()
             });
 
             const asset = await populateAssetQuery(Asset.findById(existingAsset._id));
+            await generateAssetQrCode(asset);
 
             return res.status(200).json({
                 message: 'Asset disposed successfully',
@@ -476,6 +532,8 @@ const updateAsset = async (req, res) => {
                 message: 'Asset not found'
             });
         }
+
+        await generateAssetQrCode(asset);
 
         return res.status(200).json({
             message: 'Asset updated successfully',
@@ -521,4 +579,5 @@ module.exports = {
     updateAsset,
     deleteAsset,
     populateAssetQuery,
+    generateAssetQrCode,
 };

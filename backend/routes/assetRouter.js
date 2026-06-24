@@ -17,13 +17,18 @@ const {
 
 const router = express.Router();
 
-router.post('/', upload.single('assetImage'), createAsset);     //working
+const assetUploadFields = upload.fields([
+    { name: 'assetImage', maxCount: 1 },
+    { name: 'assetInvoice', maxCount: 1 }
+]);
+
+router.post('/', assetUploadFields, createAsset);     //working
 router.get('/', getAssets);                                      //working
 router.get('/qr/:assetId', getAssetQrCode);                      //working
 router.get('/maintenance', getMaintenanceHistory);
 router.patch('/return', upload.none(), returnAsset);
 router.get('/:id', getAssetById);                                   //working
-router.put('/:id', upload.single('assetImage'), updateAsset);           //working
+router.put('/:id', assetUploadFields, updateAsset);           //working
 router.delete('/:id', deleteAsset);                                        //working
 router.patch('/maintenance/start', upload.none(), startMaintenance);
 router.patch('/maintenance/complete', upload.none(), completeMaintenance);

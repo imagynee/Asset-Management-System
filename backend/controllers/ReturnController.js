@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const Asset = require('../models/Asset');
 const AssetHistory = require('../models/AssetHistory');
-const { populateAssetQuery } = require('./assetController');
+const { populateAssetQuery, generateAssetQrCode } = require('./assetController');
 
 const getRemarks = (req, defaultRemarks) => {
     return typeof req.body.remarks === 'string' && req.body.remarks.trim()
@@ -135,6 +135,7 @@ const returnAsset = async (req, res) => {
         });
 
         const asset = await populateAssetQuery(Asset.findById(existingAsset._id));
+        await generateAssetQrCode(asset);
 
         return res.status(200).json({
             message: 'Asset returned successfully',

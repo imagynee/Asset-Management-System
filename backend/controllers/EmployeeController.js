@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 const Employee = require('../models/Employee');
 const Asset = require('../models/Asset');
 const AssetHistory = require('../models/AssetHistory');
-const {populateAssetQuery} = require('../controllers/assetController');
+const { populateAssetQuery, generateAssetQrCode } = require('../controllers/assetController');
 
 // const generateTemporaryPassword = require('../utils/generateTemporaryPassword');
 // const sendEmployeeWelcomeEmail = require('../utils/sendEmployeeWelcomeEmail');
@@ -424,6 +424,8 @@ const assignAsset = async (req, res) => {
         const updatedAssets = await populateAssetQuery(
             Asset.find({ _id: { $in: assetIds } })
         );
+
+        await Promise.all(updatedAssets.map((asset) => generateAssetQrCode(asset)));
 
         return res.status(200).json({
             message: 'Assets assigned successfully',
