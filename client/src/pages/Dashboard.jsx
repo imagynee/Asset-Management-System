@@ -33,6 +33,12 @@ const CHART_COLORS = ['#0f766e', '#2563eb', '#d97706', '#7c3aed', '#db2777', '#0
 
 export default function Dashboard() {
   const { showToast } = useToast();
+
+  const accent = localStorage.getItem('accentColor') || 'teal';
+  const primaryBrandColor = accent === 'blue' ? '#3b82f6' : '#0f766e';
+  const chartColors = accent === 'blue'
+    ? ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4']
+    : ['#0f766e', '#2563eb', '#d97706', '#7c3aed', '#db2777', '#0891b2'];
   const [dashboard, setDashboard] = useState(null);
   const [warranty, setWarranty] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -114,7 +120,7 @@ export default function Dashboard() {
                     paddingAngle={4}
                   >
                     {statusData.map((entry, index) => (
-                      <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      <Cell key={entry.name} fill={chartColors[index % chartColors.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -138,7 +144,7 @@ export default function Dashboard() {
                   <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                   <YAxis allowDecimals={false} />
                   <Tooltip />
-                  <Bar dataKey="value" fill="#0f766e" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="value" fill={primaryBrandColor} radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (

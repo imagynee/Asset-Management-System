@@ -6,13 +6,14 @@ import {
   Truck,
   Tags,
   FileSpreadsheet,
-  Boxes,
   LogOut,
   Building2,
   RotateCcw,
   Wrench,
+  Settings,
 } from 'lucide-react';
 import Button from '../ui/Button';
+import Logo from '../ui/Logo';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -24,6 +25,7 @@ const navItems = [
   { to: '/returns', label: 'Returns', icon: RotateCcw },
   { to: '/maintenance', label: 'Maintenance', icon: Wrench },
   { to: '/reports', label: 'Reports', icon: FileSpreadsheet },
+  { to: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export default function Sidebar() {
@@ -35,14 +37,14 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-slate-200 bg-white lg:flex">
-      <div className="flex h-16 items-center gap-3 border-b border-slate-100 px-6">
-        <div className="rounded-xl bg-brand-700 p-2 text-white">
-          <Boxes className="h-5 w-5" />
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 lg:flex transition-colors duration-200">
+      <div className="flex h-16 items-center gap-3 border-b border-slate-100 dark:border-slate-800 px-6">
+        <div className="rounded-xl bg-slate-50 dark:bg-slate-900 p-1.5 border border-slate-100 dark:border-slate-800">
+          <Logo className="h-6 w-6" />
         </div>
         <div>
-          <p className="text-sm font-bold text-slate-900">AssetFlow</p>
-          <p className="text-xs text-slate-500">Management System</p>
+          <p className="text-sm font-bold text-slate-900 dark:text-white">Asset Management</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">System</p>
         </div>
       </div>
 
@@ -55,8 +57,8 @@ export default function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
                 isActive
-                  ? 'bg-brand-50 text-brand-800'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  ? 'bg-brand-50 dark:bg-brand-950/50 text-brand-800 dark:text-brand-400'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-white'
               }`
             }
           >
@@ -66,13 +68,7 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="space-y-3 border-t border-slate-100 p-4">
-        <div className="rounded-xl bg-gradient-to-br from-brand-700 to-brand-800 p-4 text-white">
-          <p className="text-sm font-semibold">Track every asset</p>
-          <p className="mt-1 text-xs text-brand-100">
-            Monitor inventory, assignments, and maintenance in one place.
-          </p>
-        </div>
+      <div className="space-y-3 border-t border-slate-100 dark:border-slate-800 p-4">
         <Button variant="secondary" className="w-full" onClick={handleLogout}>
           <LogOut className="h-4 w-4" />
           Log out

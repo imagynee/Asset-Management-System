@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { Boxes } from 'lucide-react';
 import { login } from '../api/auth';
 import Button from '../components/ui/Button';
 import { Card, FormField, TextInput } from '../components/ui/Form';
 import { useToast } from '../context/ToastContext';
+import Logo from '../components/ui/Logo';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -39,10 +39,10 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
       <Card className="w-full max-w-md p-6 sm:p-8 animate-fade-in">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 inline-flex rounded-xl bg-brand-700 p-2.5 text-white">
-            <Boxes className="h-6 w-6" />
+          <div className="mx-auto mb-3 inline-flex rounded-xl bg-slate-50 dark:bg-slate-900 p-2 border border-slate-100 dark:border-slate-800">
+            <Logo className="h-7 w-7" />
           </div>
-          <h1 className="text-xl font-bold text-slate-900">AssetFlow</h1>
+          <h1 className="text-xl font-bold text-slate-900">Asset Management System</h1>
           <p className="mt-1 text-sm text-slate-500">Admin Login</p>
         </div>
 

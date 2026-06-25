@@ -11,9 +11,11 @@ import {
   Building2,
   RotateCcw,
   Wrench,
+  Settings,
 } from 'lucide-react';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import Logo from '../ui/Logo';
 
 const mobileNav = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -25,6 +27,7 @@ const mobileNav = [
   { to: '/returns', label: 'Returns', icon: RotateCcw },
   { to: '/maintenance', label: 'Maintenance', icon: Wrench },
   { to: '/reports', label: 'Reports', icon: FileSpreadsheet },
+  { to: '/settings', label: 'Settings', icon: Settings },
 ];
 
 const pageTitles = {
@@ -37,6 +40,7 @@ const pageTitles = {
   '/returns': 'Returns History',
   '/maintenance': 'Maintenance',
   '/reports': 'Reports',
+  '/settings': 'Settings',
 };
 
 function getPageTitle(pathname) {
@@ -51,7 +55,7 @@ export default function Layout() {
   const title = getPageTitle(location.pathname);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
       <Sidebar />
 
       {mobileOpen && (
@@ -62,13 +66,16 @@ export default function Layout() {
             className="absolute inset-0 bg-slate-900/50"
             onClick={() => setMobileOpen(false)}
           />
-          <div className="absolute left-0 top-0 h-full w-72 bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4">
-              <p className="font-bold text-slate-900">AssetFlow</p>
+          <div className="absolute left-0 top-0 h-full w-72 bg-white dark:bg-slate-950 border-r border-slate-100 dark:border-slate-800 shadow-xl transition-colors duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-4 py-4">
+              <div className="flex items-center gap-2">
+                <Logo className="h-5.5 w-5.5" />
+                <p className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">Asset Management System</p>
+              </div>
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
-                className="rounded-lg p-2 hover:bg-slate-100"
+                className="rounded-lg p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -81,8 +88,10 @@ export default function Layout() {
                   end={end}
                   onClick={() => setMobileOpen(false)}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${
-                      isActive ? 'bg-brand-50 text-brand-800' : 'text-slate-600'
+                    `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                      isActive
+                        ? 'bg-brand-50 dark:bg-brand-950/50 text-brand-800 dark:text-brand-400'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-slate-150'
                     }`
                   }
                 >
