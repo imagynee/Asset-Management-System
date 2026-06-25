@@ -62,9 +62,15 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 //         store: store,
 //     })
 // );
-app.use((req,res)=>{
-    console.log(req.url);
-})
+// app.use((req,res)=>{
+//     console.log(req.url);
+// })
+
+app.get("/", (req, res) => {
+    res.send("AMS Backend Running");
+});
+
 app.listen((process.env.PORT || 3000),()=>{
     console.log("Server running on port",process.env.PORT);
 })
+
