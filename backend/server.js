@@ -21,7 +21,6 @@ app.use(express.urlencoded({ extended: true }));
 // Allow React Frontend
 app.use(cors({
     origin: 'http://localhost:5173', // Vite
-    credentials: true
 }));
 
 
