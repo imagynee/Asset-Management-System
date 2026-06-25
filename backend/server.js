@@ -20,9 +20,11 @@ app.use(express.urlencoded({ extended: true }));
 
 // Allow React Frontend
 app.use(cors({
-    origin: 'http://localhost:5173', // Vite
+  origin: [
+    'http://localhost:5173',
+    'https://asset-management-system-topaz-three.vercel.app/'
+  ]
 }));
-
 
 const dashboardRouter = require('./routes/dashboardRouter');
 const assetRouter = require('./routes/assetRouter');
