@@ -4,7 +4,7 @@ A comprehensive web-based application for managing organizational assets, employ
 
 ## Overview
 
-The Asset Management System is designed to streamline asset lifecycle management across organizations. It provides a centralized platform for tracking asset inventory, managing employee assignments, monitoring maintenance schedules, and generating detailed reports.
+The Asset Management System is designed to streamline asset lifecycle management across organizations. It provides a centralized platform for tracking asset inventory, managing employee assignments[...]
 
 ## Key Features
 
@@ -153,7 +153,7 @@ Key endpoint categories:
    **Example `.env` file:**
    ```env
    PORT=5000
-   MONGO_URI=mongodb://dibs_user:dib01@ac-fyralin-shard-00-00.dvzd3l0.mongodb.net:27017,ac-fyralin-shard-00-01.dvzd3l0.mongodb.net:27017,ac-fyralin-shard-00-02.dvzd3l0.mongodb.net:27017/?ssl=true&replicaSet=atlas-cwe79f-shard-0&authSource=admin&appName=ams
+   MONGO_URI=mongodb://dibs_user:dib01@ac-fyralin-shard-00-00.dvzd3l0.mongodb.net:27017,ac-fyralin-shard-00-01.dvzd3l0.mongodb.net:27017,ac-fyralin-shard-00-02.dvzd3l0.mongodb.net:27017/?ssl=true[...]
    ADMIN_USERNAME=Admin
    ADMIN_PASSWORD=12345
    ```
@@ -258,6 +258,24 @@ This includes:
 |----------|-------------|---------|
 | `VITE_API_URL` | Backend API base URL | `http://localhost:5000` |
 
+## Production Deployment
+
+### Frontend (Vercel)
+1. Set `VITE_API_URL` environment variable to your backend URL
+2. Update CORS in `server.js` to include Vercel URL
+3. Deploy to Vercel
+
+### Backend (Render)
+1. Set environment variables:
+   ```env
+   PORT=5000
+   MONGO_URI=mongodb://dibs_user:dib01@ac-fyralin-shard-00-00.dvzd3l0.mongodb.net:27017,ac-fyralin-shard-00-01.dvzd3l0.mongodb.net:27017,ac-fyralin-shard-00-02.dvzd3l0.mongodb.net:27017/?ssl=true&replicaSet=atlas-cwe79f-shard-0&authSource=admin&appName=ams
+   ADMIN_USERNAME=Admin
+   ADMIN_PASSWORD=12345
+   ```
+2. Update CORS in `server.js` to include Vercel frontend URL
+3. Deploy to Render
+
 ## Future Enhancements
 
 - QR Code Scanning for quick asset identification
@@ -268,10 +286,6 @@ This includes:
 - Multi-location support
 - Asset condition scoring system
 - Role-based access control for multiple user types
-
-## Deployment
-
-The system is deployed on Vercel with analytics tracking enabled. Configuration for production deployment should use the appropriate environment variables for your MongoDB and API endpoints.
 
 ## Support & Documentation
 
