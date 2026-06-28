@@ -133,6 +133,7 @@ export default function EmployeeList() {
                   <th className="px-5 py-3">Email</th>
                   <th className="px-5 py-3">Department</th>
                   <th className="px-5 py-3">Designation</th>
+                  <th className="px-5 py-3">Assets</th>
                   <th className="px-5 py-3">Phone</th>
                   <th className="px-5 py-3 text-right">Actions</th>
                 </tr>
@@ -145,6 +146,11 @@ export default function EmployeeList() {
                     <td className="px-5 py-3">{employee.email}</td>
                     <td className="px-5 py-3">{employee.department || '—'}</td>
                     <td className="px-5 py-3">{employee.designation || '—'}</td>
+                    <td className="px-5 py-3">
+                      <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-lg bg-emerald-50 px-2 text-sm font-bold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                        {employee.assetCount || 0}
+                      </span>
+                    </td>
                     <td className="px-5 py-3">{employee.phone || '—'}</td>
                     <td className="px-5 py-3 text-right">
                       <div className="inline-flex items-center gap-1">

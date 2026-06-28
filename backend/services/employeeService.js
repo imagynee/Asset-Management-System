@@ -42,6 +42,32 @@ const formatHistoryAsset = (historyItem) => {
     };
 };
 
+const getAssignedAssetCounts = async (employeeIds) => {
+    if (!employeeIds.length) {
+        return new Map();
+    }
+
+    const counts = await Asset.aggregate([
+        {
+            $match: {
+                assignedTo: { $in: employeeIds }
+            }
+        },
+        {
+            $group: {
+                _id: '$assignedTo',
+                assetCount: { $sum: 1 }
+            }
+        }
+    ]);
+
+    return new Map(
+        counts
+            .filter((item) => item._id)
+            .map((item) => [item._id.toString(), item.assetCount])
+    );
+};
+
 
 
 // GET ALL EMPLOYEE LIST
@@ -81,6 +107,7 @@ const getAllEmployees = async (query = {}) => {
         employeeQuery.lean(),
         Employee.countDocuments(filter)
     ]);
+    const assetCountMap = await getAssignedAssetCounts(employees.map((employee) => employee._id));
 
     return {
         employees: employees.map((employee) => ({
@@ -90,7 +117,8 @@ const getAllEmployees = async (query = {}) => {
             phone: employee.phone,
             designation: employee.designation,
             department: employee.department,
-            empId: employee.empId
+            empId: employee.empId,
+            assetCount: assetCountMap.get(employee._id.toString()) || 0
         })),
         totalCount,
         pagination
