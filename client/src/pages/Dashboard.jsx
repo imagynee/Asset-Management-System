@@ -15,6 +15,7 @@ import {
   Package,
   UserCheck,
   PackageCheck,
+  PackageX,
   Wrench,
   AlertTriangle,
   Clock,
@@ -63,6 +64,7 @@ export default function Dashboard() {
     { name: 'Assigned', value: dashboard?.stats?.assignedAssets || 0 },
     { name: 'Available', value: dashboard?.stats?.availableAssets || 0 },
     { name: 'Maintenance', value: dashboard?.stats?.underMaintenance || 0 },
+    { name: 'Disposed', value: dashboard?.stats?.disposedAssets || 0 },
   ].filter((item) => item.value > 0);
 
   return (
@@ -74,7 +76,7 @@ export default function Dashboard() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard
           title="Total Assets"
           value={dashboard?.stats?.totalAssets ?? 0}
@@ -96,11 +98,18 @@ export default function Dashboard() {
           subtitle={`${dashboard?.assetStatusPercentages?.available ?? 0}% of total`}
         />
         <StatCard
-          title="Under Maintenance"
+          title="Maintenance"
           value={dashboard?.stats?.underMaintenance ?? 0}
           icon={Wrench}
           accent="amber"
           subtitle={`${dashboard?.assetStatusPercentages?.underMaintenance ?? 0}% of total`}
+        />
+        <StatCard
+          title="Disposed"
+          value={dashboard?.stats?.disposedAssets ?? 0}
+          icon={PackageX}
+          accent="red"
+          subtitle={`${dashboard?.assetStatusPercentages?.disposed ?? 0}% of total`}
         />
       </div>
 
