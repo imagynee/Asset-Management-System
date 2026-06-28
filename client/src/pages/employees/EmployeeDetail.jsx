@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, PackagePlus, History, Pencil, Trash2 } from 'lucide-react';
-import { getEmployeeById, getEmployeeHistory, assignAssets, deleteEmployee } from '../../api/employees';
+import { ArrowLeft, PackagePlus, History, Pencil, Trash2, Download } from 'lucide-react';
+import {
+  getEmployeeById,
+  getEmployeeHistory,
+  assignAssets,
+  deleteEmployee,
+  downloadEmployeeIdProof,
+} from '../../api/employees';
 import { getAssets, getUploadUrl } from '../../api/assets';
 import Button from '../../components/ui/Button';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
@@ -27,6 +33,7 @@ export default function EmployeeDetail() {
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [idProofDownloading, setIdProofDownloading] = useState(false);
 
   const loadData = () => {
     setLoading(true);
@@ -89,6 +96,23 @@ export default function EmployeeDetail() {
     }
   };
 
+  const handleIdProofDownload = async () => {
+    if (!employeeData?.employee?.idProofDoc) return;
+
+    setIdProofDownloading(true);
+    try {
+      await downloadEmployeeIdProof(
+        employeeData.employee.idProofDoc,
+        employeeData.employee.empId || employeeData.employee._id
+      );
+      showToast('ID proof downloaded', 'success');
+    } catch (error) {
+      showToast(error.message, 'error');
+    } finally {
+      setIdProofDownloading(false);
+    }
+  };
+
   if (loading) return <LoadingSpinner />;
   if (!employeeData?.employee) {
     return (
@@ -148,29 +172,55 @@ export default function EmployeeDetail() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-          <CardHeader title="Profile" />
-          <div className="p-5">
-            {employee.profilePic ? (
-              <img
-                src={getUploadUrl(employee.profilePic)}
-                alt={employee.name}
-                className="mx-auto mb-4 h-28 w-28 rounded-full object-cover ring-4 ring-brand-50"
-              />
-            ) : (
-              <div className="mx-auto mb-4 flex h-28 w-28 items-center justify-center rounded-full bg-brand-100 text-3xl font-bold text-brand-700">
-                {employee.name?.charAt(0)}
+        <div className="space-y-6 lg:col-span-1">
+          <Card>
+            <CardHeader title="Profile" />
+            <div className="p-5">
+              {employee.profilePic ? (
+                <img
+                  src={getUploadUrl(employee.profilePic)}
+                  alt={employee.name}
+                  className="mx-auto mb-4 h-28 w-28 rounded-full object-cover ring-4 ring-brand-50"
+                />
+              ) : (
+                <div className="mx-auto mb-4 flex h-28 w-28 items-center justify-center rounded-full bg-brand-100 text-3xl font-bold text-brand-700">
+                  {employee.name?.charAt(0)}
+                </div>
+              )}
+              <div className="space-y-3 text-sm">
+                <InfoRow label="Email" value={employee.email} />
+                <InfoRow label="Phone" value={employee.phone} />
+                <InfoRow label="Department" value={employee.department} />
+                <InfoRow label="Designation" value={employee.designation} />
+                <InfoRow label="Joined" value={formatDate(employee.dateOfJoining)} />
               </div>
-            )}
-            <div className="space-y-3 text-sm">
-              <InfoRow label="Email" value={employee.email} />
-              <InfoRow label="Phone" value={employee.phone} />
-              <InfoRow label="Department" value={employee.department} />
-              <InfoRow label="Designation" value={employee.designation} />
-              <InfoRow label="Joined" value={formatDate(employee.dateOfJoining)} />
             </div>
-          </div>
-        </Card>
+          </Card>
+
+          {employee.idProofDoc && (
+            <Card>
+              <CardHeader title="ID Proof" subtitle="View or download proof document" />
+              <div className="flex flex-col gap-3 p-5">
+                <a
+                  href={getUploadUrl(employee.idProofDoc)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center rounded-xl bg-brand-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-800"
+                >
+                  View ID Proof
+                </a>
+                <Button
+                  variant="secondary"
+                  loading={idProofDownloading}
+                  onClick={handleIdProofDownload}
+                >
+                  <Download className="h-4 w-4" />
+                  Download ID Proof
+                </Button>
+              </div>
+            </Card>
+          )}
+        </div>
 
         <Card className="lg:col-span-2">
           <CardHeader

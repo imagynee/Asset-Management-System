@@ -22,3 +22,17 @@ export const updateEmployee = (id, formData) =>
   }).then((r) => r.data);
 
 export const deleteEmployee = (id) => api.delete(`/api/employees/${id}`).then((r) => r.data);
+
+export const downloadEmployeeIdProof = async (idProofPath, employeeId) => {
+  const response = await api.get(idProofPath, { responseType: 'blob' });
+  const extension = idProofPath.split('.').pop();
+  const fileName = `${employeeId}-id-proof${extension ? `.${extension}` : ''}`;
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', fileName);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+};

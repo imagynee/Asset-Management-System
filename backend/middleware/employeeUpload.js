@@ -5,9 +5,9 @@ const multer = require('multer');
 const profilePicDir = path.join(__dirname, '..', 'uploads', 'employee', 'profilepic');
 const idProofDir = path.join(__dirname, '..', 'uploads', 'employee', 'idproofs');
 
-// // Ensure upload folders exist before Multer tries to write files.
-// fs.mkdirSync(profilePicDir, { recursive: true });
-// fs.mkdirSync(idProofDir, { recursive: true });
+// Ensure upload folders exist before Multer tries to write files.
+fs.mkdirSync(profilePicDir, { recursive: true });
+fs.mkdirSync(idProofDir, { recursive: true });
 
 const allowedExtensions = {
     profilePic: ['.jpg', '.jpeg', '.png'],

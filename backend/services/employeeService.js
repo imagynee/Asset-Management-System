@@ -9,7 +9,7 @@ const {
 } = require('../utils/listQuery');
 
 const employeeListFields = 'name empId email designation department phone';
-const employeeDetailFields = 'name empId email designation department phone profilePic dateOfJoining';
+const employeeDetailFields = 'name empId email designation department phone profilePic idProofDoc dateOfJoining';
 const employeeSearchFields = ['empId', 'name', 'email', 'department'];
 const employeeSortFields = ['empId', 'name', 'email', 'designation', 'department', 'phone', 'createdAt'];
 
