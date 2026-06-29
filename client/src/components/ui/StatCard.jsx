@@ -5,6 +5,8 @@ export default function StatCard({ title, value, icon: Icon, accent = 'brand', s
     emerald: 'bg-emerald-50 text-emerald-700',
     amber: 'bg-amber-50 text-amber-700',
     red: 'bg-red-50 text-red-700',
+    purple: 'bg-purple-50 text-purple-700',
+    indigo: 'bg-indigo-50 text-indigo-700',
   };
 
   return (

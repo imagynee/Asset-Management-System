@@ -38,8 +38,8 @@ export default function Dashboard() {
   const accent = localStorage.getItem('accentColor') || 'teal';
   const primaryBrandColor = accent === 'blue' ? '#3b82f6' : '#0f766e';
   const chartColors = accent === 'blue'
-    ? ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4']
-    : ['#0f766e', '#2563eb', '#d97706', '#7c3aed', '#db2777', '#0891b2'];
+    ? ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#06b6d4']
+    : ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#06b6d4'];
   const [dashboard, setDashboard] = useState(null);
   const [warranty, setWarranty] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -81,7 +81,7 @@ export default function Dashboard() {
           title="Total Assets"
           value={dashboard?.stats?.totalAssets ?? 0}
           icon={Package}
-          accent="brand"
+          accent="purple"
         />
         <StatCard
           title="Assigned"
