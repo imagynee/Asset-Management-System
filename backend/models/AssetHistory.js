@@ -30,6 +30,12 @@ const assetHistorySchema = new mongoose.Schema({
         trim: true
     },
 
+    vendor: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Vendor',
+        default: null
+    },
+
     actionDate: {
         type: Date,
         default: Date.now

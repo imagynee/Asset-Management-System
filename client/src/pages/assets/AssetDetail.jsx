@@ -30,9 +30,29 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import StatusBadge from '../../components/ui/StatusBadge';
 import Modal from '../../components/ui/Modal';
 import AssetForm from './AssetForm';
-import { Card, CardHeader } from '../../components/ui/Form';
+import { Card, CardHeader, FormField, SelectInput, TextArea, TextInput } from '../../components/ui/Form';
 import { formatCurrency, formatDate } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
+
+const getTodayInputValue = () => new Date().toISOString().split('T')[0];
+
+const actionConfig = {
+  return: {
+    title: 'Return Asset',
+    submitLabel: 'Return Asset',
+    successMessage: 'Asset returned successfully',
+  },
+  maintenance: {
+    title: 'Start Maintenance',
+    submitLabel: 'Start Maintenance',
+    successMessage: 'Maintenance started successfully',
+  },
+  complete: {
+    title: 'Complete Maintenance',
+    submitLabel: 'Complete Maintenance',
+    successMessage: 'Maintenance completed successfully',
+  },
+};
 
 export default function AssetDetail() {
   const { id } = useParams();
@@ -50,6 +70,12 @@ export default function AssetDetail() {
   const [showEdit, setShowEdit] = useState(false);
   const [showDispose, setShowDispose] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [actionModal, setActionModal] = useState(null);
+  const [actionForm, setActionForm] = useState({
+    remarks: '',
+    actionDate: getTodayInputValue(),
+    vendor: '',
+  });
   const [qrDownloading, setQrDownloading] = useState(false);
   const [invoiceDownloading, setInvoiceDownloading] = useState(false);
 
@@ -69,13 +95,29 @@ export default function AssetDetail() {
     loadAsset();
   }, [id]);
 
-  const handleAction = async (action) => {
+  const openActionModal = (action) => {
+    const assetVendorId = meta?.vendors?.find(
+      (vendor) => vendor.vendorName === data?.asset?.vendor?.vendorName
+    )?._id;
+
+    setActionForm({
+      remarks: '',
+      actionDate: getTodayInputValue(),
+      vendor: action === 'maintenance' ? assetVendorId || '' : '',
+    });
+    setActionModal(action);
+  };
+
+  const handleAction = async () => {
+    if (!actionModal) return;
+
     setActionLoading(true);
     try {
-      if (action === 'return') await returnAsset(data.asset._id);
-      if (action === 'maintenance') await startMaintenance(data.asset._id);
-      if (action === 'complete') await completeMaintenance(data.asset._id);
-      showToast('Action completed successfully', 'success');
+      if (actionModal === 'return') await returnAsset(data.asset._id, actionForm);
+      if (actionModal === 'maintenance') await startMaintenance(data.asset._id, actionForm);
+      if (actionModal === 'complete') await completeMaintenance(data.asset._id, actionForm);
+      showToast(actionConfig[actionModal].successMessage, 'success');
+      setActionModal(null);
       loadAsset();
     } catch (error) {
       showToast(error.message, 'error');
@@ -118,6 +160,11 @@ export default function AssetDetail() {
   };
 
   const handleDispose = async () => {
+    if (data.asset.assignedTo || data.asset.status !== 'Available') {
+      showToast('Only unassigned available assets can be disposed. Return the asset before disposing it.', 'error');
+      return;
+    }
+
     setDisposeLoading(true);
     try {
       await disposeAsset(id);
@@ -175,6 +222,7 @@ export default function AssetDetail() {
   const { asset, assignedHistory, maintenanceHistory } = data;
   const status = asset.status;
   const warranty = getWarrantySummary(asset.warrantyExpiry);
+  const canDispose = !asset.assignedTo && status === 'Available';
 
   const editValues = {
     assetName: asset.assetName || '',
@@ -219,18 +267,18 @@ export default function AssetDetail() {
           )}
           {status === 'Assigned' && (
             <>
-              <Button variant="secondary" loading={actionLoading} onClick={() => handleAction('return')}>
+              <Button variant="secondary" onClick={() => openActionModal('return')}>
                 <RotateCcw className="h-4 w-4" />
                 Return
               </Button>
-              <Button variant="secondary" loading={actionLoading} onClick={() => handleAction('maintenance')}>
+              <Button variant="secondary" onClick={() => openActionModal('maintenance')}>
                 <Wrench className="h-4 w-4" />
                 Start Maintenance
               </Button>
             </>
           )}
           {status === 'Maintenance' && (
-            <Button loading={actionLoading} onClick={() => handleAction('complete')}>
+            <Button onClick={() => openActionModal('complete')}>
               <CheckCircle2 className="h-4 w-4" />
               Complete Maintenance
             </Button>
@@ -410,16 +458,79 @@ export default function AssetDetail() {
         </div>
       </Modal>
 
+      <Modal
+        open={Boolean(actionModal)}
+        onClose={() => setActionModal(null)}
+        title={actionModal ? actionConfig[actionModal].title : 'Asset Action'}
+        size="md"
+      >
+        <div className="space-y-4">
+          <FormField label="Action Date" required>
+            <TextInput
+              type="date"
+              value={actionForm.actionDate}
+              onChange={(event) =>
+                setActionForm((current) => ({ ...current, actionDate: event.target.value }))
+              }
+            />
+          </FormField>
+
+          {actionModal === 'maintenance' && (
+            <FormField label="Maintenance Vendor">
+              <SelectInput
+                value={actionForm.vendor}
+                onChange={(event) =>
+                  setActionForm((current) => ({ ...current, vendor: event.target.value }))
+                }
+              >
+                <option value="">Select vendor</option>
+                {(meta?.vendors || []).map((vendor) => (
+                  <option key={vendor._id} value={vendor._id}>
+                    {vendor.vendorName}
+                  </option>
+                ))}
+              </SelectInput>
+            </FormField>
+          )}
+
+          <FormField label="Remarks">
+            <TextArea
+              rows={4}
+              value={actionForm.remarks}
+              onChange={(event) =>
+                setActionForm((current) => ({ ...current, remarks: event.target.value }))
+              }
+              placeholder="Add notes for this action"
+            />
+          </FormField>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-4">
+          <Button variant="secondary" onClick={() => setActionModal(null)}>
+            Cancel
+          </Button>
+          <Button loading={actionLoading} onClick={handleAction}>
+            {actionModal ? actionConfig[actionModal].submitLabel : 'Submit'}
+          </Button>
+        </div>
+      </Modal>
+
       <Modal open={showDispose} onClose={() => setShowDispose(false)} title="Dispose Asset" size="sm">
-        <p className="text-sm text-slate-600">
-          Are you sure you want to dispose <strong>{asset.assetName}</strong>? This will mark the
-          asset as disposed and remove any current assignment.
-        </p>
+        {canDispose ? (
+          <p className="text-sm text-slate-600">
+            Are you sure you want to dispose <strong>{asset.assetName}</strong>? This will mark the
+            asset as disposed.
+          </p>
+        ) : (
+          <p className="text-sm text-red-600">
+            Only unassigned available assets can be disposed. Return this asset before disposing it.
+          </p>
+        )}
         <div className="mt-6 flex justify-end gap-3">
           <Button variant="secondary" onClick={() => setShowDispose(false)}>
             Cancel
           </Button>
-          <Button variant="danger" loading={disposeLoading} onClick={handleDispose}>
+          <Button variant="danger" loading={disposeLoading} disabled={!canDispose} onClick={handleDispose}>
             Dispose Asset
           </Button>
         </div>
@@ -531,6 +642,12 @@ function HistoryCard({ title, items }) {
                   {item.employee?.name || 'Unknown'}
                 </p>
                 <p className="text-xs text-slate-500">{item.employee?.empId}</p>
+                {item.vendor?.vendorName && (
+                  <p className="mt-1 text-xs text-slate-500">Vendor: {item.vendor.vendorName}</p>
+                )}
+                {item.remarks && (
+                  <p className="mt-1 text-xs text-slate-400">{item.remarks}</p>
+                )}
               </div>
               <div className="text-right">
                 <StatusBadge status={item.status} />

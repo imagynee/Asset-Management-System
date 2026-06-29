@@ -9,6 +9,15 @@ const getRemarks = (req, defaultRemarks) => {
         : defaultRemarks;
 };
 
+const getActionDate = (req) => {
+    if (!req.body.actionDate) {
+        return new Date();
+    }
+
+    const actionDate = new Date(req.body.actionDate);
+    return Number.isNaN(actionDate.getTime()) ? new Date() : actionDate;
+};
+
 const findAssetFromFormData = async (req) => {
     const assetId = req.body.assetId || req.body.asset || req.body.id;
 
@@ -131,7 +140,7 @@ const returnAsset = async (req, res) => {
             employee: employeeId,
             action: 'RETURNED',
             remarks: getRemarks(req, 'returned'),
-            actionDate: new Date()
+            actionDate: getActionDate(req)
         });
 
         const asset = await populateAssetQuery(Asset.findById(existingAsset._id));

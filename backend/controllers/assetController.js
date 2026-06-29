@@ -230,7 +230,14 @@ const formatMaintenanceHistory = (entry) => ({
     actionDate: entry.actionDate,
     status: entry.action === 'MAINTENANCE_STARTED'
         ? 'under maintenance'
-        : 'maintenance completed'
+        : 'maintenance completed',
+    remarks: entry.remarks,
+    vendor: entry.vendor
+        ? {
+            _id: entry.vendor._id,
+            vendorName: entry.vendor.vendorName
+        }
+        : null
 });
 
 const getMaintenanceHistoryStatus = (action) => {
@@ -258,7 +265,13 @@ const formatMaintenanceHistoryItem = (entry) => {
             }
             : null,
         categoryName: asset?.category?.categoryName || null,
-        vendorName: asset?.vendor?.vendorName || null,
+        vendorName: entry.vendor?.vendorName || asset?.vendor?.vendorName || null,
+        maintenanceVendor: entry.vendor
+            ? {
+                _id: entry.vendor._id,
+                vendorName: entry.vendor.vendorName
+            }
+            : null,
         status: getMaintenanceHistoryStatus(entry.action),
         assignedTo: assignedTo
             ? {
@@ -360,6 +373,7 @@ const getAssetById = async (req, res) => {
                 .populate('assignedTo', 'empId name phone department'),
             AssetHistory.find({ asset: req.params.id })
                 .populate('employee', 'empId name phone department')
+                .populate('vendor', '_id vendorName')
                 .sort({ actionDate: 1, createdAt: 1 })
         ]);
 
@@ -423,6 +437,7 @@ const getMaintenanceHistory = async (req, res) => {
                 ]
             })
             .populate('employee', '_id empId name')
+            .populate('vendor', '_id vendorName')
             .sort({ actionDate: -1, createdAt: -1 });
 
         const maintenanceHistory = history.map(formatMaintenanceHistoryItem);
@@ -488,6 +503,12 @@ const updateAsset = async (req, res) => {
             if (!existingAsset) {
                 return res.status(404).json({
                     message: 'Asset not found'
+                });
+            }
+
+            if (existingAsset.assignedTo || existingAsset.status !== 'Available') {
+                return res.status(400).json({
+                    message: 'Only unassigned available assets can be disposed. Return the asset before disposing it.'
                 });
             }
 

@@ -19,14 +19,31 @@ export const deleteAsset = (id) => api.delete(`/api/assets/${id}`).then((r) => r
 export const disposeAsset = (id) =>
   api.put(`/api/assets/${id}`, null, { params: { status: 'dispose' } }).then((r) => r.data);
 
-export const returnAsset = (assetId, remarks) =>
-  api.patch('/api/assets/return', { assetId, remarks }).then((r) => r.data);
+const buildAssetActionFormData = (assetId, values = {}) => {
+  const formData = new FormData();
+  formData.append('assetId', assetId);
 
-export const startMaintenance = (assetId, remarks) =>
-  api.patch('/api/assets/maintenance/start', { assetId, remarks }).then((r) => r.data);
+  Object.entries(values).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      formData.append(key, value);
+    }
+  });
 
-export const completeMaintenance = (assetId, remarks) =>
-  api.patch('/api/assets/maintenance/complete', { assetId, remarks }).then((r) => r.data);
+  return formData;
+};
+
+const multipartConfig = {
+  headers: { 'Content-Type': 'multipart/form-data' },
+};
+
+export const returnAsset = (assetId, values) =>
+  api.patch('/api/assets/return', buildAssetActionFormData(assetId, values), multipartConfig).then((r) => r.data);
+
+export const startMaintenance = (assetId, values) =>
+  api.patch('/api/assets/maintenance/start', buildAssetActionFormData(assetId, values), multipartConfig).then((r) => r.data);
+
+export const completeMaintenance = (assetId, values) =>
+  api.patch('/api/assets/maintenance/complete', buildAssetActionFormData(assetId, values), multipartConfig).then((r) => r.data);
 
 export const getMaintenanceHistory = () =>
   api.get('/api/assets/maintenance').then((r) => r.data);

@@ -9,6 +9,20 @@ const getRemarks = (req, defaultRemarks) => {
         : defaultRemarks;
 };
 
+const getActionDate = (req) => {
+    if (!req.body.actionDate) {
+        return new Date();
+    }
+
+    const actionDate = new Date(req.body.actionDate);
+    return Number.isNaN(actionDate.getTime()) ? new Date() : actionDate;
+};
+
+const getVendorId = (req) => {
+    const vendor = req.body.vendor || req.body.vendorId;
+    return mongoose.Types.ObjectId.isValid(vendor) ? vendor : null;
+};
+
 const findAssetFromFormData = async (req) => {
     const assetId = req.body.assetId || req.body.asset || req.body.id;
 
@@ -58,7 +72,8 @@ const startMaintenance = async (req, res) => {
             employee: existingAsset.assignedTo,
             action: 'MAINTENANCE_STARTED',
             remarks: getRemarks(req, 'maintenance started'),
-            actionDate: new Date()
+            vendor: getVendorId(req),
+            actionDate: getActionDate(req)
         });
 
         const asset = await populateAssetQuery(Asset.findById(existingAsset._id));
@@ -105,7 +120,7 @@ const completeMaintenance = async (req, res) => {
             employee: existingAsset.assignedTo,
             action: 'MAINTENANCE_COMPLETED',
             remarks: getRemarks(req, 'maintenance completed'),
-            actionDate: new Date()
+            actionDate: getActionDate(req)
         });
 
         const asset = await populateAssetQuery(Asset.findById(existingAsset._id));

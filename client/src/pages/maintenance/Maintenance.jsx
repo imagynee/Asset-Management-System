@@ -88,6 +88,7 @@ export default function Maintenance() {
                     <th className="px-5 py-3">Name</th>
                     <th className="px-5 py-3">Department</th>
                     <th className="px-5 py-3">Employee</th>
+                    <th className="px-5 py-3">Vendor</th>
                     <th className="px-5 py-3">Event</th>
                     <th className="px-5 py-3">Remarks</th>
                     <th className="px-5 py-3">Date</th>
@@ -111,6 +112,7 @@ export default function Maintenance() {
                           '—'
                         )}
                       </td>
+                      <td className="px-5 py-3">{item.vendorName || 'â€”'}</td>
                       <td className="px-5 py-3">
                         <StatusBadge status={formatActivityStatus(item.status)} />
                       </td>
