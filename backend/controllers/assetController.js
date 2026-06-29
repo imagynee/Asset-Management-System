@@ -374,7 +374,7 @@ const getAssetById = async (req, res) => {
             AssetHistory.find({ asset: req.params.id })
                 .populate('employee', 'empId name phone department')
                 .populate('vendor', '_id vendorName')
-                .sort({ actionDate: 1, createdAt: 1 })
+                .sort({ actionDate: -1, createdAt: -1 })
         ]);
 
         if (!asset) {

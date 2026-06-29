@@ -130,7 +130,7 @@ const getDashboard = async (req, res) => {
 
             // Fetch the latest 5 activities from asset history for the dashboard feed.
             AssetHistory.find()
-                .sort({ createdAt: -1 })
+                .sort({ actionDate: -1, createdAt: -1 })
                 .limit(5)
                 .populate('asset', 'assetName model assetId')
                 .populate('employee', 'name empId')
