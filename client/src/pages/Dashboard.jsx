@@ -586,7 +586,7 @@ export default function Dashboard() {
             title="Warranty Alerts"
             subtitle={`${warranty?.expiringCount ?? 0} expiring · ${warranty?.expiredCount ?? 0} expired`}
           />
-          <div className="p-5 space-y-2 max-h-[380px] overflow-y-auto pr-2">
+          <div className="p-5 space-y-2 max-h-95 overflow-y-auto pr-2">
             {(!warranty?.expiringAssets?.length && !warranty?.expiredAssets?.length) ? (
               <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-2">
                 <AlertTriangle className="h-8 w-8 text-slate-300" />
