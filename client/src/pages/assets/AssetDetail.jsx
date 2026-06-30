@@ -480,11 +480,11 @@ export default function AssetDetail() {
 
               {/* Employee list */}
               {filtered.length === 0 ? (
-                <div className="flex h-[380px] items-center justify-center text-sm text-slate-400">
+                <div className="flex h-95 items-center justify-center text-sm text-slate-400">
                   No employees match your search.
                 </div>
               ) : (
-                <div className="h-[380px] overflow-y-auto pr-1 space-y-2">
+                <div className="h-95 overflow-y-auto pr-1 space-y-2">
                   {visible.map((employee) => {
                     const isSelected = selectedEmployeeId === employee._id;
                     return (

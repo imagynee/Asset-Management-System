@@ -109,10 +109,8 @@ export default function Maintenance() {
                       <td className="px-5 py-3">{item.department?.deptName || '—'}</td>
                       
                       <td className="px-5 py-3">
-                        {typeof item.maintenanceVendor === 'object'
-                          ? item.maintenanceVendor?.vendorName
-                          : (item.maintenanceVendor || '—')}
-                      </td>
+  {item.maintenanceVendor?.vendorName ?? item.vendorName ?? '—'}
+</td>
                       <td className="px-5 py-3">
                         <StatusBadge status={formatActivityStatus(item.status)} />
                       </td>
@@ -174,9 +172,7 @@ export default function Maintenance() {
                       </td>
                       <td className="px-5 py-3">{asset.department?.deptName || '—'}</td>
                       <td className="px-5 py-3">
-                        {typeof mEvent?.maintenanceVendor === 'object'
-                          ? mEvent?.maintenanceVendor?.vendorName
-                          : (mEvent?.maintenanceVendor || '—')}
+                        {mEvent.maintenanceVendor?.vendorName ?? mEvent.vendorName ?? '—'}
                       </td>
                       <td className="px-5 py-3">
                         {mEvent?.actionDate ? (
@@ -188,7 +184,7 @@ export default function Maintenance() {
                           '—'
                         )}
                       </td>
-                      <td className="px-5 py-3 text-slate-500 max-w-[200px] truncate">
+                      <td className="px-5 py-3 text-slate-500 max-w-50 truncate">
                         {mEvent?.remarks || '—'}
                       </td>
                       <td className="px-5 py-3 text-right">

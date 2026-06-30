@@ -113,6 +113,7 @@ const completeMaintenance = async (req, res) => {
         }
 
         existingAsset.status = 'Assigned';
+        console.log(req.body);
         await existingAsset.save();
 
         const history = await AssetHistory.create({
@@ -120,8 +121,10 @@ const completeMaintenance = async (req, res) => {
             employee: existingAsset.assignedTo,
             action: 'MAINTENANCE_COMPLETED',
             remarks: getRemarks(req, 'maintenance completed'),
-            actionDate: getActionDate(req)
+            actionDate: getActionDate(req),
+            vendor: existingAsset.vendor,
         });
+        console.log(history);
 
         const asset = await populateAssetQuery(Asset.findById(existingAsset._id));
         await generateAssetQrCode(asset);
