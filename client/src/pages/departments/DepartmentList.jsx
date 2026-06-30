@@ -94,7 +94,14 @@ export default function DepartmentList() {
     <div className="animate-fade-in space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Departments</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-slate-900">Departments</h1>
+            {!loading && departments.length > 0 && (
+              <span className="inline-flex items-center rounded-full bg-violet-50 px-2.5 py-0.5 text-xs font-semibold text-violet-700 ring-1 ring-inset ring-violet-600/20">
+                {departments.length} {departments.length === 1 ? 'record' : 'records'}
+              </span>
+            )}
+          </div>
           <p className="mt-1 text-sm text-slate-500">
             Manage organizational departments for asset assignment.
           </p>

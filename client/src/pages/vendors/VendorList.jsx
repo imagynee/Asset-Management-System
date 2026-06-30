@@ -102,7 +102,14 @@ export default function VendorList() {
     <div className="animate-fade-in space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Vendors</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-slate-900">Vendors</h1>
+            {!loading && vendors.length > 0 && (
+              <span className="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-semibold text-sky-700 ring-1 ring-inset ring-sky-600/20">
+                {vendors.length} {vendors.length === 1 ? 'record' : 'records'}
+              </span>
+            )}
+          </div>
           <p className="mt-1 text-sm text-slate-500">
             Manage suppliers and vendor contact information.
           </p>
