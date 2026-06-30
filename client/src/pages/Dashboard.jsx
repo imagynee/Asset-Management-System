@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   PieChart,
   Pie,
   Cell,
+  Sector,
   ResponsiveContainer,
   BarChart,
   Bar,
@@ -10,7 +11,6 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
-  LabelList,
 } from 'recharts';
 import {
   Package,
@@ -32,54 +32,134 @@ import { Card, CardHeader } from '../components/ui/Form';
 import { useToast } from '../context/ToastContext';
 import { formatActivityStatus, formatDate } from '../utils/helpers';
 
-const CHART_COLORS = ['#0f766e', '#2563eb', '#d97706', '#7c3aed', '#db2777', '#0891b2'];
+const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
 
-const CATEGORY_GRADIENT_COLORS = [
-  { bar: '#6366f1', glow: 'rgba(99,102,241,0.18)' },   // Indigo
-  { bar: '#0ea5e9', glow: 'rgba(14,165,233,0.18)' },    // Sky
-  { bar: '#8b5cf6', glow: 'rgba(139,92,246,0.18)' },    // Violet
-  { bar: '#f59e0b', glow: 'rgba(245,158,11,0.18)' },    // Amber
-  { bar: '#10b981', glow: 'rgba(16,185,129,0.18)' },    // Emerald
-  { bar: '#ec4899', glow: 'rgba(236,72,153,0.18)' },    // Pink
-  { bar: '#f97316', glow: 'rgba(249,115,22,0.18)' },    // Orange
-  { bar: '#06b6d4', glow: 'rgba(6,182,212,0.18)' },     // Cyan
+/* Status-specific semantic colors for the pie chart */
+const STATUS_COLORS = {
+  Assigned:    '#3b82f6', // blue
+  Available:   '#10b981', // emerald
+  Maintenance: '#f59e0b', // amber
+  Disposed:    '#ef4444', // red
+};
+
+/* ---------- Custom Tooltip for Status Pie ---------- */
+function StatusTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const { name, value } = payload[0];
+  const color = STATUS_COLORS[name] || CHART_COLORS[0];
+  return (
+    <div
+      style={{
+        background: '#fff',
+        border: '1px solid #e2e8f0',
+        borderRadius: 10,
+        padding: '8px 14px',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.10)',
+        minWidth: 148,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+        <span
+          style={{
+            width: 9,
+            height: 9,
+            borderRadius: '50%',
+            background: color,
+            display: 'inline-block',
+            flexShrink: 0,
+          }}
+        />
+        <span style={{ color: '#475569', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          {name}
+        </span>
+      </div>
+      <p style={{ color: '#0f172a', fontSize: 20, fontWeight: 700, margin: 0, lineHeight: 1 }}>
+        {value}
+        <span style={{ fontSize: 12, fontWeight: 500, color: '#94a3b8', marginLeft: 5 }}>
+          assets
+        </span>
+      </p>
+    </div>
+  );
+}
+
+/* ---------- Active slice — expands outward with a soft glow ring ---------- */
+function ActiveSlice(props) {
+  const {
+    cx, cy, innerRadius, outerRadius,
+    startAngle, endAngle, fill,
+  } = props;
+  return (
+    <g>
+      {/* Glow ring */}
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={outerRadius + 4}
+        outerRadius={outerRadius + 10}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+        fillOpacity={0.18}
+      />
+      {/* Main slice — slightly expanded */}
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius + 5}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+      />
+    </g>
+  );
+}
+
+/* Palette anchored to the brand teal — cool, harmonious, dashboard-friendly */
+const CATEGORY_BAR_COLORS = [
+  '#0f766e', // Brand teal (primary)
+  '#0d9488', // Teal-500
+  '#0891b2', // Cyan-600
+  '#0ea5e9', // Sky-500
+  '#2563eb', // Blue-600
+  '#6366f1', // Indigo-500
+  '#14b8a6', // Teal-400
+  '#38bdf8', // Sky-300
+  '#34d399', // Emerald-400
+  '#059669', // Emerald-600
+  '#0284c7', // Sky-600
+  '#4f46e5', // Indigo-600
 ];
 
 /* ---------- Custom Tooltip for Category Chart ---------- */
 function CategoryTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
-  const { name, value } = payload[0].payload;
-  const color = payload[0].payload._color || '#6366f1';
+  const { name, value, _color } = payload[0].payload;
   return (
     <div
       style={{
-        background: 'rgba(15,23,42,0.88)',
-        backdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 14,
-        padding: '10px 16px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.28)',
-        minWidth: 130,
+        background: '#fff',
+        border: '1px solid #e2e8f0',
+        borderRadius: 10,
+        padding: '8px 14px',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+        minWidth: 140,
       }}
     >
-      <p style={{ color: '#94a3b8', fontSize: 11, margin: 0, textTransform: 'uppercase', letterSpacing: 0.6 }}>
-        Category
-      </p>
-      <p style={{ color: '#f8fafc', fontSize: 15, fontWeight: 600, margin: '4px 0 8px' }}>
-        {name}
-      </p>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <p style={{ color: '#64748b', fontSize: 11, margin: 0, fontWeight: 500 }}>{name}</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
         <span
           style={{
-            width: 10,
-            height: 10,
+            width: 9,
+            height: 9,
             borderRadius: 3,
-            background: color,
+            background: _color || '#6366f1',
             display: 'inline-block',
-            boxShadow: `0 0 6px ${color}`,
+            flexShrink: 0,
           }}
         />
-        <span style={{ color: '#e2e8f0', fontSize: 14, fontWeight: 700 }}>
+        <span style={{ color: '#0f172a', fontSize: 14, fontWeight: 700 }}>
           {value} {value === 1 ? 'asset' : 'assets'}
         </span>
       </div>
@@ -87,45 +167,36 @@ function CategoryTooltip({ active, payload }) {
   );
 }
 
-/* ---------- Custom Bar Shape with Rounded Top + Gradient ---------- */
-function GradientBar(props) {
+/* ---------- Custom rounded-right horizontal bar ---------- */
+function HBar(props) {
   const { x, y, width, height, _color } = props;
-  if (!height || height <= 0) return null;
-  const id = `bar-grad-${x}-${y}`;
-  const radius = Math.min(8, width / 2);
+  if (!width || width <= 0) return null;
+  const r = Math.min(5, height / 2);
   return (
-    <g>
-      <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={_color} stopOpacity={1} />
-          <stop offset="100%" stopColor={_color} stopOpacity={0.55} />
-        </linearGradient>
-      </defs>
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        rx={radius}
-        ry={radius}
-        fill={`url(#${id})`}
-        style={{ filter: `drop-shadow(0 2px 8px ${_color}44)` }}
-      />
-    </g>
+    <rect
+      x={x}
+      y={y + 1}
+      width={width}
+      height={Math.max(height - 2, 2)}
+      rx={r}
+      ry={r}
+      fill={_color || '#6366f1'}
+      fillOpacity={0.82}
+    />
   );
 }
 
-/* ---------- Custom Bar Label ---------- */
-function renderBarLabel({ x, y, width, value }) {
+/* ---------- Inline end-of-bar value label ---------- */
+function HBarValueLabel({ x, y, width, height, value }) {
   if (!value) return null;
   return (
     <text
-      x={x + width / 2}
-      y={y - 8}
-      textAnchor="middle"
-      fontSize={12}
+      x={x + width + 6}
+      y={y + height / 2 + 1}
+      dominantBaseline="middle"
+      fontSize={11}
       fontWeight={600}
-      fill="#94a3b8"
+      fill="#64748b"
     >
       {value}
     </text>
@@ -134,6 +205,9 @@ function renderBarLabel({ x, y, width, value }) {
 
 
 export default function Dashboard() {
+  const [activeStatusIdx, setActiveStatusIdx] = useState(null);
+  const onPieEnter = useCallback((_, index) => setActiveStatusIdx(index), []);
+  const onPieLeave = useCallback(() => setActiveStatusIdx(null), []);
   const { showToast } = useToast();
 
   const accent = localStorage.getItem('accentColor') || 'teal';
@@ -157,16 +231,22 @@ export default function Dashboard() {
 
   if (loading) return <LoadingSpinner label="Loading dashboard..." />;
 
-  const categoryData = Object.entries(dashboard?.assetsByCategory || {}).map(
-    ([name, value], idx) => ({
+  /* Sort descending so the largest category is on top */
+  const categoryData = Object.entries(dashboard?.assetsByCategory || {})
+    .map(([name, value], idx) => ({
       name,
       value,
-      _color: CATEGORY_GRADIENT_COLORS[idx % CATEGORY_GRADIENT_COLORS.length].bar,
-      _glow: CATEGORY_GRADIENT_COLORS[idx % CATEGORY_GRADIENT_COLORS.length].glow,
-    })
-  );
+      _color: CATEGORY_BAR_COLORS[idx % CATEGORY_BAR_COLORS.length],
+    }))
+    .sort((a, b) => b.value - a.value);
 
   const totalCategoryAssets = categoryData.reduce((sum, d) => sum + d.value, 0);
+
+  /* Dynamic chart height: 38px per row, min 240, max 520 */
+  const categoryChartHeight = Math.min(
+    Math.max(categoryData.length * 38 + 20, 240),
+    520
+  );
 
   const statusData = [
     { name: 'Assigned', value: dashboard?.stats?.assignedAssets || 0 },
@@ -222,33 +302,96 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-3">
+        {/* ═══════════════ UPGRADED: Assets by Status ═══════════════ */}
         <Card className="xl:col-span-1">
           <CardHeader title="Assets by Status" subtitle="Current distribution" />
-          <div className="h-72 p-4">
-            {statusData.length ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={statusData}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={55}
-                    outerRadius={90}
-                    paddingAngle={4}
-                  >
-                    {statusData.map((entry, index) => (
-                      <Cell key={entry.name} fill={chartColors[index % chartColors.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-slate-500">
-                No asset data yet
+          {statusData.length ? (
+            <div className="flex flex-col px-4 pb-5 pt-1">
+              {/* Donut chart with center label */}
+              <div style={{ position: 'relative', height: 200 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={statusData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={58}
+                      outerRadius={86}
+                      paddingAngle={3}
+                      activeIndex={activeStatusIdx}
+                      activeShape={<ActiveSlice />}
+                      onMouseEnter={onPieEnter}
+                      onMouseLeave={onPieLeave}
+                      animationBegin={0}
+                      animationDuration={900}
+                    >
+                      {statusData.map((entry) => (
+                        <Cell
+                          key={entry.name}
+                          fill={STATUS_COLORS[entry.name] || '#6366f1'}
+                          stroke="none"
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      content={<StatusTooltip />}
+                      wrapperStyle={{ outline: 'none' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+
+                {/* Center label — total count */}
+                
               </div>
-            )}
-          </div>
+
+              {/* Legend */}
+              <div
+                className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-slate-100 pt-3"
+              >
+                {statusData.map((item, idx) => {
+                  const color = STATUS_COLORS[item.name] || CHART_COLORS[idx % CHART_COLORS.length];
+                  const isActive = activeStatusIdx === idx;
+                  return (
+                    <div
+                      key={item.name}
+                      className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors"
+                      style={{
+                        background: isActive ? `${color}12` : 'transparent',
+                        cursor: 'default',
+                      }}
+                      onMouseEnter={() => setActiveStatusIdx(idx)}
+                      onMouseLeave={() => setActiveStatusIdx(null)}
+                    >
+                      <span
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: '50%',
+                          background: color,
+                          display: 'inline-block',
+                          flexShrink: 0,
+                          boxShadow: isActive ? `0 0 0 3px ${color}30` : 'none',
+                          transition: 'box-shadow 0.15s',
+                        }}
+                      />
+                      <p style={{ fontSize: 13, fontWeight: 600, color: '#334155', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {item.name}
+                        <span style={{ fontWeight: 700, color: '#0f172a', marginLeft: 6 }}>
+                          {item.value}
+                        </span>
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="flex h-60 items-center justify-center text-sm text-slate-400">
+              No asset data yet
+            </div>
+          )}
         </Card>
 
         {/* ═══════════════ UPGRADED: Assets by Category ═══════════════ */}
@@ -279,76 +422,72 @@ export default function Dashboard() {
             )}
           </div>
 
-          <div className="p-4">
+          <div className="px-5 pb-5 pt-3">
             {categoryData.length ? (
-              <>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={categoryData}
-                      margin={{ top: 20, right: 12, left: -4, bottom: 4 }}
-                      barCategoryGap="20%"
+              <div style={{ height: categoryChartHeight }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={categoryData}
+                    layout="vertical"
+                    margin={{ top: 4, right: 48, left: 0, bottom: 4 }}
+                    barCategoryGap="30%"
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      horizontal={false}
+                      stroke="#e2e8f0"
+                      strokeOpacity={0.7}
+                    />
+                    {/* Y-axis: category names */}
+                    <YAxis
+                      dataKey="name"
+                      type="category"
+                      width={110}
+                      tick={({ x, y, payload }) => (
+                        <text
+                          x={x - 4}
+                          y={y}
+                          textAnchor="end"
+                          dominantBaseline="middle"
+                          fontSize={12}
+                          fontWeight={500}
+                          fill="#475569"
+                        >
+                          {payload.value.length > 14
+                            ? payload.value.slice(0, 13) + '…'
+                            : payload.value}
+                        </text>
+                      )}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    {/* X-axis: asset count */}
+                    <XAxis
+                      type="number"
+                      allowDecimals={false}
+                      tick={{ fontSize: 11, fill: '#94a3b8' }}
+                      axisLine={{ stroke: '#e2e8f0' }}
+                      tickLine={false}
+                      dy={4}
+                    />
+                    <Tooltip
+                      content={<CategoryTooltip />}
+                      cursor={{ fill: 'rgba(99,102,241,0.05)' }}
+                    />
+                    <Bar
+                      dataKey="value"
+                      shape={<HBar />}
+                      animationDuration={900}
+                      animationEasing="ease-out"
+                      label={<HBarValueLabel />}
                     >
-                      <CartesianGrid
-                        strokeDasharray="4 4"
-                        vertical={false}
-                        stroke="#e2e8f0"
-                        strokeOpacity={0.6}
-                      />
-                      <XAxis
-                        dataKey="name"
-                        tick={{ fontSize: 11, fill: '#64748b', fontWeight: 500 }}
-                        axisLine={{ stroke: '#e2e8f0' }}
-                        tickLine={false}
-                        dy={6}
-                      />
-                      <YAxis
-                        allowDecimals={false}
-                        tick={{ fontSize: 11, fill: '#94a3b8' }}
-                        axisLine={false}
-                        tickLine={false}
-                        dx={-4}
-                      />
-                      <Tooltip
-                        content={<CategoryTooltip />}
-                        cursor={{ fill: 'rgba(99,102,241,0.04)', radius: 8 }}
-                      />
-                      <Bar
-                        dataKey="value"
-                        shape={<GradientBar />}
-                        animationDuration={1200}
-                        animationEasing="ease-out"
-                      >
-                        <LabelList dataKey="value" content={renderBarLabel} />
-                        {categoryData.map((entry, index) => (
-                          <Cell key={entry.name} _color={entry._color} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Legend Strip */}
-                <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 border-t border-slate-100 pt-3">
-                  {categoryData.map((cat) => (
-                    <div key={cat.name} className="flex items-center gap-2">
-                      <span
-                        className="inline-block h-2.5 w-2.5 rounded-sm"
-                        style={{
-                          background: cat._color,
-                          boxShadow: `0 0 6px ${cat._glow}`,
-                        }}
-                      />
-                      <span className="text-xs font-medium text-slate-600">
-                        {cat.name}
-                      </span>
-                      <span className="text-xs tabular-nums text-slate-400">
-                        {cat.value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </>
+                      {categoryData.map((entry) => (
+                        <Cell key={entry.name} fill={entry._color} fillOpacity={0.82} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             ) : (
               <div className="flex flex-col items-center gap-3 py-16 text-slate-400">
                 <div

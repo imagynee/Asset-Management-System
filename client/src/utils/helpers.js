@@ -27,6 +27,7 @@ export const statusStyles = {
   Returned: 'bg-cyan-50 text-cyan-700 ring-cyan-600/20',
   'Return Requested': 'bg-orange-50 text-orange-700 ring-orange-600/20',
   'Maintenance Requested': 'bg-purple-50 text-purple-700 ring-purple-600/20',
+  Disposed: 'bg-red-50 text-red-700 ring-red-600/20',
 };
 
 export const getStatusStyle = (status) =>
