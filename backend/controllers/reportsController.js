@@ -2,6 +2,7 @@ const XLSX = require('xlsx');
 
 const Asset = require('../models/Asset');
 const Employee = require('../models/Employee');
+const Category = require('../models/Category');
 
 const populateReportAssetQuery = (query) => {
     return query
@@ -60,7 +61,12 @@ const buildAssetReportRows = (assets, includeAssignmentFields = false) => {
         };
 
         if (includeAssignmentFields) {
-            row['Assigned To'] = asset.assignedTo?.name || '';
+            const emp = asset.assignedTo;
+            if (emp) {
+                row['Assigned To'] = emp.empId ? `${emp.name} (${emp.empId})` : emp.name || '';
+            } else {
+                row['Assigned To'] = '';
+            }
             row['Assignment Date'] = formatReportDate(asset.assignedDate);
         }
 
@@ -235,8 +241,99 @@ const exportAllEmployeesReport = async (req, res) => {
     }
 };
 
+/* ─────────────────────────────────────────────────────────────
+   FLEXIBLE REPORT GENERATOR  (used by new Reports UI)
+   GET /api/reports/generate?type=assets|employees&status=all|assigned|available|maintenance|disposed&categoryId=all|<objectId>
+   GET /api/reports/preview?type=assets|employees&status=all|assigned|available|maintenance|disposed&categoryId=all|<objectId>
+───────────────────────────────────────────────────────────── */
+
+const STATUS_MAP = {
+    all:         null,
+    assigned:    ['Assigned'],
+    available:   ['Available'],
+    maintenance: ['Maintenance', 'Maintenance Requested'],
+    disposed:    ['Disposed'],
+    returned:    ['Available'],   // returned assets end up back as Available
+};
+
+const buildAssetFilter = (status, categoryId) => {
+    const filter = {};
+    const statuses = STATUS_MAP[status] ?? null;
+    if (statuses) filter.status = { $in: statuses };
+    if (categoryId && categoryId !== 'all') filter.category = categoryId;
+    return filter;
+};
+
+const generateReport = async (req, res) => {
+    const { type = 'assets', status = 'all', categoryId = 'all' } = req.query;
+
+    try {
+        if (type === 'employees') {
+            const employees = await Employee.find()
+                .select('empId name email designation department phone dateOfJoining createdAt')
+                .sort({ name: 1 });
+
+            const rows = buildEmployeeReportRows(employees);
+            return sendWorkbook(res, rows, 'employees-report.xlsx', 'Employees', employeeReportHeaders);
+        }
+
+        // Assets
+        const filter = buildAssetFilter(status, categoryId);
+        const includeAssignment = (status === 'assigned' || status === 'all');
+        const assets = await populateReportAssetQuery(
+            Asset.find(filter).sort({ assetName: 1 })
+        );
+
+        const headers = includeAssignment
+            ? [...baseReportHeaders, 'Assigned To', 'Assignment Date']
+            : baseReportHeaders;
+        const rows = buildAssetReportRows(assets, includeAssignment);
+
+        const statusLabel = status === 'all' ? 'all' : status;
+        const fileName = `assets-${statusLabel}-report.xlsx`;
+        return sendWorkbook(res, rows, fileName, 'Assets', headers);
+    } catch (error) {
+        return res.status(500).json({ message: 'Failed to generate report', error: error.message });
+    }
+};
+
+const previewReport = async (req, res) => {
+    const { type = 'assets', status = 'all', categoryId = 'all' } = req.query;
+    const PREVIEW_LIMIT = 100;
+
+    try {
+        if (type === 'employees') {
+            const employees = await Employee.find()
+                .select('empId name email designation department phone dateOfJoining createdAt')
+                .sort({ name: 1 })
+                .limit(PREVIEW_LIMIT);
+
+            const total = await Employee.countDocuments();
+            const rows = buildEmployeeReportRows(employees);
+            return res.json({ rows, headers: employeeReportHeaders, total, preview: true });
+        }
+
+        const filter = buildAssetFilter(status, categoryId);
+        const includeAssignment = (status === 'assigned' || status === 'all');
+        const total = await Asset.countDocuments(filter);
+        const assets = await populateReportAssetQuery(
+            Asset.find(filter).sort({ assetName: 1 }).limit(PREVIEW_LIMIT)
+        );
+
+        const headers = includeAssignment
+            ? [...baseReportHeaders, 'Assigned To', 'Assignment Date']
+            : baseReportHeaders;
+        const rows = buildAssetReportRows(assets, includeAssignment);
+        return res.json({ rows, headers, total, preview: true });
+    } catch (error) {
+        return res.status(500).json({ message: 'Failed to preview report', error: error.message });
+    }
+};
+
 module.exports = {
     exportAssetReport,
     exportAllAssetsReport,
-    exportAllEmployeesReport
+    exportAllEmployeesReport,
+    generateReport,
+    previewReport,
 };

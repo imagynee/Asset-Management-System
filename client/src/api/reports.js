@@ -1,5 +1,6 @@
 import api from './axios';
 
+/* ── shared blob downloader ── */
 const downloadBlob = (response, defaultName) => {
   const disposition = response.headers['content-disposition'];
   const match = disposition?.match(/filename="(.+)"/);
@@ -15,6 +16,21 @@ const downloadBlob = (response, defaultName) => {
   window.URL.revokeObjectURL(url);
 };
 
+/* ── new flexible endpoints ── */
+export const previewReport = (params) =>
+  api.get('/api/reports/preview', { params }).then((r) => r.data);
+
+export const downloadReport = (params) => {
+  const fileName =
+    params.type === 'employees'
+      ? 'employees-report.xlsx'
+      : `assets-${params.status || 'all'}-report.xlsx`;
+  return api
+    .get('/api/reports/generate', { params, responseType: 'blob' })
+    .then((r) => downloadBlob(r, fileName));
+};
+
+/* ── legacy exports (kept for backward compat) ── */
 export const exportAllAssets = () =>
   api.get('/api/reports/assets/all', { responseType: 'blob' }).then((r) => {
     downloadBlob(r, 'all-assets-report.xlsx');
