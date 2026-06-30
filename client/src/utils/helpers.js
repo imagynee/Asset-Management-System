@@ -30,8 +30,26 @@ export const statusStyles = {
   Disposed: 'bg-red-50 text-red-700 ring-red-600/20',
 };
 
-export const getStatusStyle = (status) =>
-  statusStyles[status] || 'bg-slate-100 text-slate-700 ring-slate-600/20';
+export const getStatusStyle = (status) => {
+  if (!status) return 'bg-slate-100 text-slate-700 ring-slate-600/20';
+  const normalized = status.toLowerCase().replace(/_/g, ' ').trim();
+  
+  const normalizedStyles = {
+    'available': 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+    'assigned': 'bg-blue-50 text-blue-700 ring-blue-600/20',
+    'maintenance': 'bg-amber-50 text-amber-700 ring-amber-600/20',
+    'under maintenance': 'bg-amber-50 text-amber-700 ring-amber-600/20',
+    'completed': 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+    'maintenance started': 'bg-amber-50 text-amber-700 ring-amber-600/20',
+    'maintenance completed': 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+    'returned': 'bg-cyan-50 text-cyan-700 ring-cyan-600/20',
+    'return requested': 'bg-orange-50 text-orange-700 ring-orange-600/20',
+    'maintenance requested': 'bg-purple-50 text-purple-700 ring-purple-600/20',
+    'disposed': 'bg-red-50 text-red-700 ring-red-600/20',
+  };
+
+  return normalizedStyles[normalized] || 'bg-slate-100 text-slate-700 ring-slate-600/20';
+};
 
 const activityLabels = {
   assigned: 'Assigned',

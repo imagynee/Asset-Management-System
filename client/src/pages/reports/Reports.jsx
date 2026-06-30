@@ -41,7 +41,6 @@ const ASSET_STATUSES = [
   { id: 'disposed',   label: 'Disposed'       },
 ];
 
-const PREVIEW_LIMIT = 15;
 
 /* ─── sub-components ─────────────────────────────────────── */
 
@@ -70,8 +69,8 @@ function StyledSelect({ value, onChange, disabled, children }) {
 }
 
 function PreviewTable({ headers, rows, total }) {
-  const displayed = rows.slice(0, PREVIEW_LIMIT);
-  const hasMore   = total > PREVIEW_LIMIT;
+  const displayed = rows.slice(0, 10);
+  const hasMore = total > 10;
 
   if (!rows.length) {
     return (
@@ -83,18 +82,19 @@ function PreviewTable({ headers, rows, total }) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="flex-1 flex flex-col gap-2 min-h-0">
       {headers.length > 4 && (
-        <p className="text-[11px] text-slate-400">
+        <p className="text-[1em
+        ] text-slate-400 shrink-0">
           ⇔&nbsp;Scroll right to see all columns
         </p>
       )}
-      <div className="overflow-x-auto rounded-xl border border-slate-200">
-        <table className="min-w-full text-xs">
-          <thead className="bg-slate-50 text-left text-[11px] uppercase tracking-wide text-slate-500">
+      <div className="overflow-auto rounded-xl border border-slate-200 flex-1 min-h-0">
+        <table className="min-w-full text-sm">
+          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 sticky top-0 z-10 border-b border-slate-200">
             <tr>
               {headers.map((h) => (
-                <th key={h} className="whitespace-nowrap px-4 py-2.5 font-semibold">{h}</th>
+                <th key={h} className="whitespace-nowrap px-4 py-3 font-semibold">{h}</th>
               ))}
             </tr>
           </thead>
@@ -102,7 +102,7 @@ function PreviewTable({ headers, rows, total }) {
             {displayed.map((row, i) => (
               <tr key={i} className="border-t border-slate-100 hover:bg-slate-50/60">
                 {headers.map((h) => (
-                  <td key={h} className="whitespace-nowrap px-4 py-2 text-slate-700">
+                  <td key={h} className="whitespace-nowrap px-4 py-2.5 text-slate-700">
                     {row[h] ?? '—'}
                   </td>
                 ))}
@@ -112,9 +112,8 @@ function PreviewTable({ headers, rows, total }) {
         </table>
       </div>
       {hasMore && (
-        <p className="text-right text-[11px] text-slate-400">
-          Showing&nbsp;<strong className="text-slate-600">{PREVIEW_LIMIT}</strong>&nbsp;of&nbsp;
-          <strong className="text-slate-600">{total}</strong>&nbsp;records — download to see all
+        <p className="text-right text-[1em] text-slate-400 font-regular shrink-0 mt-0.5">
+          Download to see all
         </p>
       )}
     </div>
@@ -192,10 +191,10 @@ export default function Reports() {
       </div>
 
       {/* Main grid: filter left | preview right */}
-      <div className="grid gap-5 lg:grid-cols-[320px_1fr] items-start overflow-hidden">
+      <div className="grid gap-5 lg:grid-cols-[320px_1fr] items-stretch overflow-hidden">
 
         {/* ════════ LEFT — filter card ════════ */}
-        <Card>
+        <Card className="h-full flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
             <span className="text-sm font-semibold text-slate-800">Report Filters</span>
@@ -323,10 +322,10 @@ export default function Reports() {
         </Card>
 
         {/* ════════ RIGHT — preview card ════════ */}
-        <Card className="min-w-0 overflow-hidden">
+        <Card className="min-w-0 overflow-hidden flex flex-col h-full">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
             <div>
-              <p className="text-sm font-semibold text-slate-800">Preview</p>
+              <p className="text-1em font-semibold text-slate-800">Preview</p>
               <p className="mt-0.5 text-xs text-slate-400">
                 {preview
                   ? `${preview.total} record${preview.total !== 1 ? 's' : ''} matched`
@@ -335,14 +334,14 @@ export default function Reports() {
             </div>
           </div>
 
-          <div className="p-5">
+          <div className={`p-5 flex-1 flex flex-col min-h-0 ${!preview || previewing ? 'justify-center min-h-[320px]' : ''}`}>
             {previewing ? (
-              <div className="flex flex-col items-center gap-3 py-20 text-slate-400">
+              <div className="flex flex-col items-center justify-center gap-3 py-10 text-slate-400 flex-1">
                 <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
                 <p className="text-sm">Loading preview…</p>
               </div>
             ) : !preview ? (
-              <div className="flex flex-col items-center gap-3 py-20 text-slate-300">
+              <div className="flex flex-col items-center justify-center gap-3 py-10 text-slate-300 flex-1">
                 <FileSpreadsheet className="h-12 w-12" />
                 <div className="text-center">
                   <p className="text-sm font-medium text-slate-400">No preview yet</p>

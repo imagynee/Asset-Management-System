@@ -22,6 +22,11 @@ import {
   Clock,
   Activity,
   Layers,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Calendar,
+  RotateCcw,
+  CheckCircle2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getDashboard, getWarrantyAlerts } from '../api/dashboard';
@@ -398,12 +403,7 @@ export default function Dashboard() {
         <Card className="xl:col-span-2">
           <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
             <div className="flex items-center gap-3">
-              <div
-                className="flex h-9 w-9 items-center justify-center rounded-xl"
-                style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }}
-              >
-                <Layers className="h-4.5 w-4.5 text-white" />
-              </div>
+              
               <div>
                 <h3 className="font-semibold text-slate-900">Assets by Category</h3>
                 <p className="text-sm text-slate-500">Inventory breakdown</p>
@@ -505,135 +505,243 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-3">
+        {/* ════════ RECENT ASSETS ════════ */}
         <Card className="xl:col-span-2">
           <CardHeader title="Recent Assets" subtitle="Latest additions to inventory" />
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="px-5 py-3">Asset ID</th>
-                  <th className="px-5 py-3">Name</th>
-                  <th className="px-5 py-3">Category</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3">Assigned To</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(dashboard?.recentAssets || []).map((asset) => (
-                  <tr key={asset.assetId} className="border-t border-slate-100">
-                    <td className="px-5 py-3 font-medium text-brand-700">
-                      <Link to={`/assets?search=${asset.assetId}`}>{asset.assetId}</Link>
-                    </td>
-                    <td className="px-5 py-3">{asset.assetName}</td>
-                    <td className="px-5 py-3">{asset.categoryName || '—'}</td>
-                    <td className="px-5 py-3">
+          <div className="p-5">
+            {(dashboard?.recentAssets || []).length ? (
+              <div className="rounded-xl border border-slate-100 overflow-hidden">
+                {/* Header row — shares the SAME grid-cols as data rows */}
+                <div className="grid grid-cols-[28px_1.5fr_1fr_1.2fr_110px] gap-x-4 px-3 py-2 bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  <div />
+                  <div>Asset</div>
+                  <div>Category</div>
+                  <div>Assigned To</div>
+                  <div className="justify-self-end">Status</div>
+                </div>
+
+                {/* Data rows */}
+                {dashboard.recentAssets.map((asset, index) => (
+                  <div
+                    key={asset.assetId}
+                    className={`grid grid-cols-[28px_1.5fr_1fr_1.2fr_110px] gap-x-4 px-3 py-2.5 items-center hover:bg-slate-50/80 transition-colors ${
+                      index < dashboard.recentAssets.length - 1 ? 'border-b border-slate-100' : ''
+                    }`}
+                  >
+                    {/* Icon */}
+                    <div className="flex items-center justify-center">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-50 text-brand-700 border border-brand-150">
+                        <Package className="h-3.5 w-3.5" />
+                      </span>
+                    </div>
+
+                    {/* Asset Name + ID pill */}
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-bold text-slate-900 text-[14px] leading-snug truncate">
+                        <Link to={`/assets?search=${asset.assetId}`} className="hover:text-brand-600 hover:underline">
+                          {asset.assetName}
+                        </Link>
+                      </span>
+                      <span className="mt-0.5 inline-block rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 w-fit">
+                        {asset.assetId}
+                      </span>
+                    </div>
+
+                    {/* Category */}
+                    <div className="text-[13px] font-medium text-slate-600 truncate">
+                      {asset.categoryName || <span className="text-slate-300">—</span>}
+                    </div>
+
+                    {/* Assigned To */}
+                    <div className="text-[13px] text-slate-700 font-medium truncate">
+                      {asset.assignedTo ? (
+                        <span>
+                          <span className="font-semibold text-slate-800">{asset.assignedTo.name}</span>{' '}
+                          <span className="text-slate-400 text-[11px]">({asset.assignedTo.empId})</span>
+                        </span>
+                      ) : (
+                        <span className="text-slate-300 italic font-normal">—</span>
+                      )}
+                    </div>
+
+                    {/* Status Badge */}
+                    <div className="justify-self-end">
                       <StatusBadge status={asset.status} />
-                    </td>
-                    <td className="px-5 py-3">
-                      {asset.assignedTo
-                        ? `${asset.assignedTo.name} (${asset.assignedTo.empId})`
-                        : '—'}
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 py-12 text-slate-500">
+                <Package className="h-8 w-8 text-slate-300" />
+                <p className="text-sm">No recent assets yet</p>
+              </div>
+            )}
           </div>
         </Card>
 
+        {/* ════════ WARRANTY ALERTS ════════ */}
         <Card>
           <CardHeader
             title="Warranty Alerts"
             subtitle={`${warranty?.expiringCount ?? 0} expiring · ${warranty?.expiredCount ?? 0} expired`}
           />
-          <div className="max-h-96 space-y-3 overflow-y-auto p-4">
-            {(warranty?.expiringAssets || []).slice(0, 5).map((asset) => (
-              <div
-                key={asset._id}
-                className="flex items-start gap-3 rounded-xl border border-amber-100 bg-amber-50 p-3"
-              >
-                <Clock className="mt-0.5 h-4 w-4 text-amber-600" />
-                <div>
-                  <p className="text-sm font-medium text-slate-900">{asset.assetName}</p>
-                  <p className="text-xs text-slate-500">{asset.assetId}</p>
-                  <p className="mt-1 text-xs font-medium text-amber-700">
-                    Expires in {asset.daysLeft} days
-                  </p>
-                </div>
+          <div className="p-5 space-y-2 max-h-[380px] overflow-y-auto pr-2">
+            {(!warranty?.expiringAssets?.length && !warranty?.expiredAssets?.length) ? (
+              <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-2">
+                <AlertTriangle className="h-8 w-8 text-slate-300" />
+                <p className="text-sm">No warranty alerts</p>
               </div>
-            ))}
+            ) : (
+              <div className="space-y-2">
+                {/* Expired Assets */}
+                {(warranty?.expiredAssets || []).slice(0, 3).map((asset) => (
+                  <div key={asset._id} className="flex gap-3 items-center bg-red-50/60 border border-red-100 rounded-xl px-3 py-2.5">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-500">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-bold text-slate-900 text-[14px] truncate">
+                          <Link to={`/assets?search=${asset.assetId}`} className="hover:text-red-600 hover:underline">
+                            {asset.assetName}
+                          </Link>
+                        </span>
+                        
+                      </div>
+                      <p className="text-[11px] font-semibold text-red-500 mt-0.5">
+                        Expired {asset.expiredDays} days ago
+                      </p>
+                    </div>
+                  </div>
+                ))}
 
-            {(warranty?.expiredAssets || []).slice(0, 3).map((asset) => (
-              <div
-                key={asset._id}
-                className="flex items-start gap-3 rounded-xl border border-red-100 bg-red-50 p-3"
-              >
-                <AlertTriangle className="mt-0.5 h-4 w-4 text-red-600" />
-                <div>
-                  <p className="text-sm font-medium text-slate-900">{asset.assetName}</p>
-                  <p className="text-xs text-slate-500">{asset.assetId}</p>
-                  <p className="mt-1 text-xs font-medium text-red-700">
-                    Expired {asset.expiredDays} days ago
-                  </p>
-                </div>
+                {/* Expiring Assets */}
+                {(warranty?.expiringAssets || []).slice(0, 5).map((asset) => (
+                  <div key={asset._id} className="flex gap-3 items-center bg-amber-50/60 border border-amber-100 rounded-xl px-3 py-2.5">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                      <Clock className="h-3.5 w-3.5" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-bold text-slate-900 text-[14px] truncate">
+                          <Link to={`/assets?search=${asset.assetId}`} className="hover:text-amber-600 hover:underline">
+                            {asset.assetName}
+                          </Link>
+                        </span>
+                        
+                      </div>
+                      <p className="text-[11px] font-semibold text-amber-600 mt-0.5">
+                        Expires in {asset.daysLeft} days
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-
-            {!warranty?.expiringAssets?.length && !warranty?.expiredAssets?.length && (
-              <p className="py-8 text-center text-sm text-slate-500">No warranty alerts</p>
             )}
           </div>
         </Card>
       </div>
 
+      {/* ════════ RECENT ACTIVITY ════════ */}
       <Card>
         <CardHeader title="Recent Activity" subtitle="Latest asset lifecycle events" />
-        <div className="overflow-x-auto">
+        <div className="p-5">
           {(dashboard?.recentActivity || []).length ? (
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="px-5 py-3">Asset</th>
-                  <th className="px-5 py-3">Model</th>
-                  <th className="px-5 py-3">Activity</th>
-                  <th className="px-5 py-3">Employee</th>
-                  <th className="px-5 py-3">Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dashboard.recentActivity.map((activity, index) => (
-                  <tr key={index} className="border-t border-slate-100">
-                    <td className="px-5 py-3">
-                      {activity.assetId ? (
-                        <Link
-                          to={`/assets?search=${activity.assetId}`}
-                          className="font-medium text-brand-700"
-                        >
-                          {activity.assetName || activity.assetId}
-                        </Link>
-                      ) : (
-                        activity.assetName || '—'
-                      )}
+            <div className="rounded-xl border border-slate-100 overflow-hidden">
+              {/* Header row — shares the SAME grid-cols as data rows */}
+              <div className="grid grid-cols-[28px_1.5fr_1.5fr_1fr_125px] gap-x-4 px-3 py-2 bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <div />
+                <div>Asset</div>
+                <div>Employee / Details</div>
+                <div>Activity</div>
+                <div className="justify-self-end">Date</div>
+              </div>
+
+              {/* Data rows */}
+              {dashboard.recentActivity.map((activity, index) => {
+                const statusLower = activity.status?.toLowerCase() || '';
+                let BulletIcon = Activity;
+                let bulletBg = 'bg-slate-100 text-slate-500';
+
+                if (statusLower.includes('assign') || statusLower.includes('check_out')) {
+                  BulletIcon = UserCheck;
+                  bulletBg = 'bg-emerald-100 text-emerald-600';
+                } else if (statusLower.includes('return') || statusLower.includes('check_in')) {
+                  BulletIcon = RotateCcw;
+                  bulletBg = 'bg-slate-100 text-slate-500';
+                } else if (statusLower.includes('maintenance_start') || statusLower.includes('repair')) {
+                  BulletIcon = Wrench;
+                  bulletBg = 'bg-amber-100 text-amber-600';
+                } else if (statusLower.includes('maintenance_complete') || statusLower.includes('complete')) {
+                  BulletIcon = Wrench;
+                  bulletBg = 'bg-emerald-100 text-emerald-600';
+                } else if (statusLower.includes('dispose') || statusLower.includes('scrap')) {
+                  BulletIcon = PackageX;
+                  bulletBg = 'bg-red-100 text-red-600';
+                }
+
+                return (
+                  <div
+                    key={index}
+                    className={`grid grid-cols-[28px_1.5fr_1.5fr_1fr_125px] gap-x-4 px-3 py-2.5 items-center hover:bg-slate-50/80 transition-colors ${
+                      index < dashboard.recentActivity.length - 1 ? 'border-b border-slate-100' : ''
+                    }`}
+                  >
+                    {/* Icon */}
+                    <div className="flex items-center justify-center">
+                      <span className={`flex h-7 w-7 items-center justify-center rounded-full border border-current/10 ${bulletBg}`}>
+                        <BulletIcon className="h-3.5 w-3.5" />
+                      </span>
+                    </div>
+
+                    {/* Asset Name + ID pill */}
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-bold text-slate-900 text-[14px] leading-snug truncate">
+                        {activity.assetId ? (
+                          <Link
+                            to={`/assets?search=${activity.assetId}`}
+                            className="hover:text-brand-600 hover:underline"
+                          >
+                            {activity.assetName || activity.assetId}
+                          </Link>
+                        ) : (
+                          activity.assetName || '—'
+                        )}
+                      </span>
                       {activity.assetId && (
-                        <p className="text-xs text-slate-400">{activity.assetId}</p>
+                        <span className="mt-1 inline-block rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 w-fit">
+                          {activity.assetId}
+                        </span>
                       )}
-                    </td>
-                    <td className="px-5 py-3">{activity.model || '—'}</td>
-                    <td className="px-5 py-3">
+                    </div>
+
+                    {/* Employee */}
+                    <div className="text-[13px] text-slate-700 font-medium truncate">
+                      {activity.assignedTo ? (
+                        <span>
+                          <span className="font-semibold text-slate-800">{activity.assignedTo.employeeName}</span>{' '}
+                          <span className="text-slate-400 text-[11px]">({activity.assignedTo.empId})</span>
+                        </span>
+                      ) : (
+                        <span className="text-slate-300 italic font-normal">—</span>
+                      )}
+                    </div>
+
+                    {/* Activity Badge */}
+                    <div className="flex items-center">
                       <StatusBadge status={formatActivityStatus(activity.status)} />
-                    </td>
-                    <td className="px-5 py-3">
-                      {activity.assignedTo
-                        ? `${activity.assignedTo.employeeName} (${activity.assignedTo.empId})`
-                        : '—'}
-                    </td>
-                    <td className="px-5 py-3 text-slate-500">
-                      {formatDate(activity.createdAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+
+                    {/* Date Pill */}
+                    <div className="flex items-center gap-1.5 text-[12px] font-semibold text-slate-600 bg-white border border-slate-200 px-2.5 py-0.5 rounded-lg shrink-0 justify-self-end">
+                      <Calendar className="h-3 w-3 text-slate-400" />
+                      <span>{formatDate(activity.createdAt)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           ) : (
             <div className="flex flex-col items-center gap-2 py-12 text-slate-500">
               <Activity className="h-8 w-8 text-slate-300" />

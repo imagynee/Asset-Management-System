@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Wrench, History } from 'lucide-react';
+import { Wrench, History, Calendar, Eye } from 'lucide-react';
 import { getMaintenanceHistory, getAssets } from '../../api/assets';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import EmptyState from '../../components/ui/EmptyState';
@@ -84,10 +84,9 @@ export default function Maintenance() {
               <table className="min-w-full text-sm">
                 <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="px-5 py-3">Asset ID</th>
-                    <th className="px-5 py-3">Name</th>
+                    <th className="px-5 py-3">Asset</th>
                     <th className="px-5 py-3">Department</th>
-                    <th className="px-5 py-3">Employee</th>
+                    
                     <th className="px-5 py-3">Vendor</th>
                     <th className="px-5 py-3">Event</th>
                     <th className="px-5 py-3">Remarks</th>
@@ -97,28 +96,33 @@ export default function Maintenance() {
                 <tbody>
                   {history.map((item) => (
                     <tr key={item.historyId} className="border-t border-slate-100 hover:bg-slate-50/80">
-                      <td className="px-5 py-3 font-medium text-brand-700">{item.assetId}</td>
-                      <td className="px-5 py-3 font-medium text-slate-900">{item.assetName}</td>
-                      <td className="px-5 py-3">{item.department?.deptName || '—'}</td>
                       <td className="px-5 py-3">
-                        {item.assignedTo ? (
-                          <span>
-                            {item.assignedTo.name}
-                            <span className="block text-xs text-slate-400">
-                              {item.assignedTo.empId}
-                            </span>
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-bold text-slate-900 text-[14px] leading-snug">
+                            {item.assetName}
                           </span>
-                        ) : (
-                          '—'
-                        )}
+                          <span className="mt-1 inline-block rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 w-fit">
+                            {item.assetId}
+                          </span>
+                        </div>
                       </td>
-                      <td className="px-5 py-3">{item.vendorName || 'â€”'}</td>
+                      <td className="px-5 py-3">{item.department?.deptName || '—'}</td>
+                      
+                      <td className="px-5 py-3">
+                        {typeof item.maintenanceVendor === 'object'
+                          ? item.maintenanceVendor?.vendorName
+                          : (item.maintenanceVendor || '—')}
+                      </td>
                       <td className="px-5 py-3">
                         <StatusBadge status={formatActivityStatus(item.status)} />
                       </td>
                       <td className="px-5 py-3 text-slate-500">{item.remarks || '—'}</td>
-                      <td className="px-5 py-3 text-slate-500">{formatDate(item.actionDate)}</td>
-
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-1.5 text-[12px] font-semibold text-slate-700 bg-slate-100/90 border border-slate-200 px-2.5 py-0.5 rounded-lg shrink-0 w-fit">
+                          <Calendar className="h-3.5 w-3.5 text-slate-500" />
+                          <span>{formatDate(item.actionDate)}</span>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -132,7 +136,6 @@ export default function Maintenance() {
           description="Assets marked for maintenance will appear here."
         />
       ) : (
-        
         <Card>
           <CardHeader
             title="Under Maintenance Assets"
@@ -144,46 +147,62 @@ export default function Maintenance() {
             <table className="min-w-full text-sm">
               <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="px-5 py-3">Asset ID</th>
-                  <th className="px-5 py-3">Name</th>
-                  <th className="px-5 py-3">Category</th>
+                  <th className="px-5 py-3">Asset</th>
                   <th className="px-5 py-3">Department</th>
-                  <th className="px-5 py-3">Model</th>
-                  <th className="px-5 py-3">Assigned To</th>
-                  <th className="px-5 py-3">Status</th>
+                  <th className="px-5 py-3">Vendor</th>
+                  <th className="px-5 py-3">Date</th>
+                  <th className="px-5 py-3">Remarks</th>
                   <th className="px-5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {underMaintenance.map((asset) => (
-                  <tr key={asset._id} className="border-t border-slate-100 hover:bg-slate-50/80">
-                    <td className="px-5 py-3 font-medium text-brand-700">{asset.assetId}</td>
-                    <td className="px-5 py-3 font-medium text-slate-900">{asset.assetName}</td>
-                    <td className="px-5 py-3">{asset.categoryName || '—'}</td>
-                    <td className="px-5 py-3">{asset.department?.deptName || '—'}</td>
-                    <td className="px-5 py-3">{asset.model || '—'}</td>
-                    <td className="px-5 py-3">
-                      {asset.assignedTo ? (
-                        <span>
-                          {asset.assignedTo.name}
-                          <span className="block text-xs text-slate-400">
-                            {asset.assignedTo.empId}
+                {underMaintenance.map((asset) => {
+                  const mEvent = history.find(
+                    (h) => h._id === asset._id && h.status === 'maintenance_started'
+                  );
+                  return (
+                    <tr key={asset._id} className="border-t border-slate-100 hover:bg-slate-50/80">
+                      <td className="px-5 py-3">
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-bold text-slate-900 text-[14px] leading-snug">
+                            {asset.assetName}
                           </span>
-                        </span>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td className="px-5 py-3">
-                      <StatusBadge status={asset.status || 'Maintenance'} />
-                    </td>
-                    <td className="px-5 py-3 text-right">
-                      <Link to={`/assets/${asset._id}`} className="text-brand-700 hover:underline">
-                        View
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                          <span className="mt-1 inline-block rounded bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-500 w-fit">
+                            {asset.assetId}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3">{asset.department?.deptName || '—'}</td>
+                      <td className="px-5 py-3">
+                        {typeof mEvent?.maintenanceVendor === 'object'
+                          ? mEvent?.maintenanceVendor?.vendorName
+                          : (mEvent?.maintenanceVendor || '—')}
+                      </td>
+                      <td className="px-5 py-3">
+                        {mEvent?.actionDate ? (
+                          <div className="flex items-center gap-1.5 text-[12px] font-semibold text-slate-700 bg-slate-100/90 border border-slate-200 px-2.5 py-0.5 rounded-lg shrink-0 w-fit">
+                            <Calendar className="h-3.5 w-3.5 text-slate-500" />
+                            <span>{formatDate(mEvent.actionDate)}</span>
+                          </div>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td className="px-5 py-3 text-slate-500 max-w-[200px] truncate">
+                        {mEvent?.remarks || '—'}
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <Link
+                          to={`/assets/${asset._id}`}
+                          className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-brand-700 hover:bg-brand-50"
+                        >
+                          <Eye className="h-4 w-4" />
+                          View
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -163,20 +163,6 @@ export default function EmployeeList() {
                               <Eye className="h-4 w-4" />
                               View
                             </Link>
-                            <button
-                              type="button"
-                              onClick={() => openEdit(employee)}
-                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-slate-600 hover:bg-slate-100"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setDeleteTarget(employee)}
-                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-red-600 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
                           </>
                         )}
                       </div>
